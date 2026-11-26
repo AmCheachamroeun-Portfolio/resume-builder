@@ -1,6 +1,6 @@
 import { ApiError } from '@google/genai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { sampleResume } from '@/constants/sample-resume';
+import { SAMPLE_DATA, sampleResume } from '@/constants/sample-resume';
 import { resumeContext } from '@/features/ai-assistant/context';
 import { draftToData } from '@/features/ai-assistant/draft';
 import { groundDraft, inventedNumbers } from '@/lib/ai/guards';
@@ -312,7 +312,14 @@ describe('privacy and injection handling', () => {
     ];
     const context = resumeContext(resume);
     expect(context).toContain('Frontend Developer');
-    for (const secret of ['Maya', '@', '+855', 'Phnom Penh, Cambodia', 'data:image', 'Referee']) {
+    for (const secret of [
+      SAMPLE_DATA.personal.fullName,
+      '@',
+      '+855',
+      'Phnom Penh, Cambodia',
+      'data:image',
+      'Referee',
+    ]) {
       expect(context, secret).not.toContain(secret);
     }
   });

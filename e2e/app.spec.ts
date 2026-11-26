@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { SAMPLE_DATA } from '../src/constants/sample-resume';
 import { createExample, preview, saved, stubPrint } from './helpers';
 
 const name = (page: Page) => page.getByLabel('Full name', { exact: true });
@@ -62,8 +63,8 @@ test('switches template without changing the text, and can undo it', async ({ pa
   await page.getByRole('button', { name: 'Change template' }).first().click();
   await page.locator('[data-pick="modern-slate"]').click();
   await expect(paper(page)).toHaveAttribute('data-template', 'modern-slate');
-  await expect(name(page)).toHaveValue('Maya Sovann');
-  await expect(preview(page).first()).toContainText('Maya Sovann');
+  await expect(name(page)).toHaveValue(SAMPLE_DATA.personal.fullName);
+  await expect(preview(page).first()).toContainText(SAMPLE_DATA.personal.fullName);
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(paper(page)).toHaveAttribute('data-template', 'ats-essential');
@@ -109,7 +110,7 @@ test('undoes typing with the keyboard', async ({ page }) => {
   await createExample(page);
   await name(page).fill('Changed Name');
   await page.keyboard.press('Control+z');
-  await expect(name(page)).toHaveValue('Maya Sovann');
+  await expect(name(page)).toHaveValue(SAMPLE_DATA.personal.fullName);
   await page.keyboard.press('Control+Shift+z');
   await expect(name(page)).toHaveValue('Changed Name');
 });
@@ -288,7 +289,7 @@ test('translates the interface to Khmer but never the resume', async ({ page }) 
   await page.goto(`/km/builder/${id}`);
   await expect(page.locator('html')).toHaveAttribute('lang', 'km');
   await expect(page.getByRole('button', { name: 'នាំចេញ', exact: true })).toBeVisible();
-  await expect(preview(page).first()).toContainText('Maya Sovann');
+  await expect(preview(page).first()).toContainText(SAMPLE_DATA.personal.fullName);
   await expect(preview(page).first()).toContainText('Frontend Developer');
 });
 

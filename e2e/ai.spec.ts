@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { SAMPLE_DATA } from '../src/constants/sample-resume';
 import { createExample, preview, saved } from './helpers';
 
 /**
@@ -47,7 +48,7 @@ test('sends nothing before consent, then applies a summary only when accepted', 
 
   // Identity and contact details are never part of the request.
   const sent = JSON.stringify(requests[0]!.body);
-  for (const secret of ['Maya', '@example', '+855', 'data:image']) {
+  for (const secret of [SAMPLE_DATA.personal.fullName, '@example', '+855', 'data:image']) {
     expect(sent).not.toContain(secret);
   }
 

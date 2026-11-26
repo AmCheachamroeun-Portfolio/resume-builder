@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { SAMPLE_DATA } from '../src/constants/sample-resume';
 import { TEMPLATES } from '../src/features/resume-templates/registry';
 import { fixture, KHMER_PHRASES } from './fixtures';
 import { importResumes, preview, printFromEditor, stubPrint } from './helpers';
@@ -60,7 +61,7 @@ for (const template of TEMPLATES) {
     await importResumes(page, resumes);
 
     const sample = await exportPdf(page, resumes[0]!.id, 'a4');
-    expect(sample.flatMap((p) => p.links)).toContain('mailto:maya.sovann@example.com');
+    expect(sample.flatMap((p) => p.links)).toContain(`mailto:${SAMPLE_DATA.personal.email}`);
 
     const long = await exportPdf(page, resumes[1]!.id, 'a4');
     expect(long.length).toBeGreaterThan(1);

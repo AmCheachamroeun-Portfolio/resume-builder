@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import mammoth from 'mammoth';
 import { describe, expect, it } from 'vitest';
-import { sampleResume } from '@/constants/sample-resume';
+import { SAMPLE_DATA, sampleResume } from '@/constants/sample-resume';
 import { docxBuffer } from '@/lib/docx/build';
 import { TEMPLATES } from '@/features/resume-templates/registry';
 import { fixture, KHMER_PHRASES } from '../e2e/fixtures';
@@ -13,12 +13,17 @@ describe('Word export', () => {
   it('carries sections, entries and working links', async () => {
     const buffer = await docxBuffer(sampleResume('ats-essential'));
     const content = await text(buffer);
-    for (const part of ['Maya Sovann', 'Work Experience', 'Lotus Ledger Studio', 'React']) {
+    for (const part of [
+      SAMPLE_DATA.personal.fullName,
+      'Work Experience',
+      'Lotus Ledger Studio',
+      'React',
+    ]) {
       expect(content).toContain(part);
     }
     const page = await html(buffer);
     expect(page).toContain('<h1>Work Experience</h1>');
-    expect(page).toContain('href="mailto:maya.sovann@example.com"');
+    expect(page).toContain(`href="mailto:${SAMPLE_DATA.personal.email}"`);
     expect(page).toContain('<ul><li>');
   });
 

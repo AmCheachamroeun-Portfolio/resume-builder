@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { SAMPLE_DATA } from '../src/constants/sample-resume';
 import { createExample } from './helpers';
 
 test('a cover letter is written, saved, previewed and printed', async ({ page }) => {
@@ -12,7 +13,7 @@ test('a cover letter is written, saved, previewed and printed', async ({ page })
   await page.getByLabel('Letter text').fill('Dear team,\n\nI would like to join you.');
   const paper = page.getByTestId('letter-paper');
   await expect(paper).toContainText('I would like to join you.');
-  await expect(paper).toContainText('Maya Sovann');
+  await expect(paper).toContainText(SAMPLE_DATA.personal.fullName);
   await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved');
 
   await page.reload();
@@ -61,7 +62,7 @@ test('an AI draft is applied only after it is accepted, and can be undone', asyn
   await expect(suggestion).toContainText('Mocked draft.');
   await expect(page.getByLabel('Letter text')).toHaveValue('My own words.');
   // Contact details stay on the device.
-  expect(JSON.stringify(sent)).not.toContain('maya');
+  expect(JSON.stringify(sent)).not.toContain('example.com');
   expect(sent.company).toBe('Acme');
   await suggestion.getByRole('button', { name: 'Accept' }).click();
   await expect(page.getByLabel('Letter text')).toHaveValue(/Mocked draft/);

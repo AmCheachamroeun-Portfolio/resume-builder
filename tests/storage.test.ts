@@ -45,7 +45,7 @@ beforeEach(async () => {
 describe('IndexedDB storage', () => {
   it('saves, reads, renames, duplicates and deletes', async () => {
     await saveResume(make('a'));
-    expect((await getResume('a'))?.data.personal.fullName).toBe('Maya Sovann');
+    expect((await getResume('a'))?.data.personal.fullName).toBe(SAMPLE_DATA.personal.fullName);
     await renameResume('a', '  New name  ');
     expect((await getResume('a'))?.title).toBe('New name');
     const copy = await duplicateResume('a', 'Copy');
@@ -199,11 +199,11 @@ describe('cover letters', () => {
     const resume = make('a');
     await saveResume(resume);
     const letter = newLetter('For Acme', resume);
-    expect(letter.sender.fullName).toBe('Maya Sovann');
+    expect(letter.sender.fullName).toBe(SAMPLE_DATA.personal.fullName);
     expect(letter.resumeId).toBe('a');
     await saveLetter(letter);
     await deleteResume('a');
-    expect((await getLetter(letter.id))?.sender.fullName).toBe('Maya Sovann');
+    expect((await getLetter(letter.id))?.sender.fullName).toBe(SAMPLE_DATA.personal.fullName);
   });
 
   it('guards against overwriting from a second tab', async () => {

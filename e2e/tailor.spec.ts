@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SAMPLE_DATA } from '../src/constants/sample-resume';
 import { createExample, preview, saved } from './helpers';
 
 const JOB = 'We are hiring a frontend developer who knows React, TypeScript and Kubernetes well.';
@@ -15,7 +16,7 @@ test('accepted rewrites go into a tailored copy and the original is untouched', 
     const body = route.request().postDataJSON();
     const field = (label: string) =>
       body.fields.find((f: { label: string }) => f.label.startsWith(label));
-    expect(JSON.stringify(body)).not.toContain('maya.sovann@');
+    expect(JSON.stringify(body)).not.toContain(SAMPLE_DATA.personal.email);
     return route.fulfill({
       json: {
         data: {

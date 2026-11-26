@@ -3,17 +3,17 @@ import type { Resume, ResumeData } from '@/types/resume';
 import { resumeDataSchema } from '@/types/resume';
 import { SAMPLE_PHOTO } from './sample-photo';
 
-/** Every person, company and contact detail here is fictional. */
+/** The one source for sample resumes. Companies and contact details are made up. */
 export const SAMPLE_DATA: ResumeData = resumeDataSchema.parse({
   personal: {
-    fullName: 'Maya Sovann',
+    fullName: 'Am Cheachamroeun',
     headline: 'Frontend Developer',
-    email: 'maya.sovann@example.com',
+    email: 'am@example.com',
     phone: '+855 12 000 000',
     location: 'Phnom Penh, Cambodia',
-    linkedin: 'linkedin.com/in/maya-example',
-    github: 'github.com/maya-example',
-    website: 'maya.example.com',
+    linkedin: 'linkedin.com/in/am-example',
+    github: 'github.com/am-example',
+    website: 'am.example.com',
   },
   summary: {
     professional:
