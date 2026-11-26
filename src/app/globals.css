@@ -1,0 +1,174 @@
+@import 'tailwindcss';
+@import '../features/resume-templates/templates.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design tokens: warm paper, ink, and one deep green ---------- */
+:root {
+  --background: #f6f5f1;
+  --surface: #ffffff;
+  --foreground: #17191c;
+  --muted: #edebe5;
+  --muted-foreground: #585c63;
+  --border: #dedbd3;
+  --border-strong: #8d8a82;
+  --primary: #17694e;
+  --primary-hover: #11533d;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e4efe8;
+  --danger: #ac2a20;
+  --danger-soft: #f9e9e6;
+  --warning: #7d5200;
+  --warning-soft: #f8eed6;
+  --desk: #e8e5dd;
+  color-scheme: light;
+}
+.dark {
+  --background: #121416;
+  --surface: #1a1d1f;
+  --foreground: #ececea;
+  --muted: #24282b;
+  --muted-foreground: #a6abb1;
+  --border: #2e3337;
+  --border-strong: #6d747b;
+  --primary: #58c299;
+  --primary-hover: #77d1ad;
+  --primary-foreground: #06201a;
+  --primary-soft: #16322a;
+  --danger: #ff9b90;
+  --danger-soft: #3a1d1a;
+  --warning: #e7bd67;
+  --warning-soft: #352a12;
+  --desk: #0b0d0e;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-desk: var(--desk);
+  --font-sans: 'Inter', 'Noto Sans Khmer', system-ui, sans-serif;
+  --font-display: 'Source Serif 4', 'Noto Serif Khmer', Georgia, serif;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --shadow-paper: 0 1px 2px rgb(20 18 12 / 0.08), 0 8px 24px -12px rgb(20 18 12 / 0.22);
+  --shadow-overlay: 0 16px 48px -12px rgb(10 10 8 / 0.35);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  :lang(km) body,
+  body:lang(km) {
+    line-height: 1.75;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  select,
+  summary {
+    cursor: pointer;
+  }
+}
+
+@utility paper {
+  background: #fff;
+  box-shadow: var(--shadow-paper);
+}
+@utility container-page {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+@utility skeleton {
+  background: linear-gradient(90deg, #f1f1ef, #e6e6e3, #f1f1ef);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+/* Khmer must not be tracked or tightened. */
+:lang(km) .display,
+:lang(km) [class*='tracking-'] {
+  letter-spacing: 0;
+}
+:lang(km) .display {
+  line-height: 1.55;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- PDF export ---------- */
+@media screen {
+  #rc-print-root {
+    position: fixed;
+    top: 0;
+    left: -100000px;
+  }
+}
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+  body:has(#rc-print-root) > *:not(#rc-print-root) {
+    display: none !important;
+  }
+  #rc-print-root > .rc-page {
+    break-inside: avoid;
+  }
+  #rc-print-root > .rc-page:not(:last-of-type) {
+    break-after: page;
+  }
+}

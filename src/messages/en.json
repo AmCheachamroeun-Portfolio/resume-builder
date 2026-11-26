@@ -1,0 +1,978 @@
+{
+  "meta": {
+    "title": "ResumeCraft AI — Resume and CV builder",
+    "description": "Build a clear, professional resume with 12 templates, live preview and PDF download. Your data stays in your browser."
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "home": "Home",
+    "templates": "Templates",
+    "builder": "Builder",
+    "resumes": "My resumes",
+    "settings": "Settings",
+    "main": "Main",
+    "menu": "Menu",
+    "language": "Interface language"
+  },
+  "theme": {
+    "label": "Colour theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Match system"
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The address may be wrong, or the page has moved.",
+    "home": "Go to the home page"
+  },
+  "footer": {
+    "product": "Product",
+    "guided": "Create with AI",
+    "yourData": "Your data",
+    "privacy": "Privacy and storage",
+    "tagline": "A resume builder that keeps your work in your own browser.",
+    "local": "No account. Resumes are saved on this device."
+  },
+  "export": {
+    "download": "Download PDF",
+    "title": "Save your resume as a PDF",
+    "description": "Your browser creates the file, so text stays sharp, selectable and correct in every language.",
+    "step1": "In the print window, set “Destination” to “Save as PDF”.",
+    "step2": "Check that the paper size is {size}. Leave margins on “Default” and scale on 100%.",
+    "step3": "Turn “Headers and footers” off, then press Save.",
+    "browserNote": "Chrome and Edge give the most accurate result. Other browsers may handle page size differently.",
+    "dontShow": "Do not show these steps again",
+    "open": "Open print window",
+    "failed": "The PDF could not be prepared. Please try again."
+  },
+  "landing": {
+    "hero": {
+      "eyebrow": "Resume and CV builder",
+      "title": "Write a resume that is clear, honest and ready to send",
+      "body": "Choose a template, fill in your details and watch the pages update as you type. Download a PDF when it looks right.",
+      "primary": "Create my resume",
+      "secondary": "Browse templates",
+      "noAccount": "No account needed",
+      "onDevice": "Saved on your device",
+      "noWatermark": "No watermark",
+      "caption": "Sample resumes with fictional details"
+    },
+    "featured": {
+      "title": "Start from a layout that suits the job",
+      "intro": "Each template is a different layout, not only a different colour. You can switch at any time without retyping.",
+      "use": "Use this template",
+      "all": "See all 12 templates"
+    },
+    "how": {
+      "title": "How it works",
+      "choose": {
+        "title": "Choose a template",
+        "body": "Filter by style, photo support or compatibility with applicant tracking systems."
+      },
+      "write": {
+        "title": "Add your details",
+        "body": "Work through one section at a time. Changes save by themselves."
+      },
+      "design": {
+        "title": "Adjust the look",
+        "body": "Change colour, font, spacing and section order, with undo if you change your mind."
+      },
+      "download": {
+        "title": "Download the PDF",
+        "body": "Save an A4 or US Letter PDF with selectable text and working links."
+      }
+    },
+    "methods": {
+      "title": "Two ways to begin",
+      "intro": "Both end in the same editor, so you can change anything afterwards.",
+      "manual": {
+        "title": "Write it yourself",
+        "body": "Pick a template and complete the sections in any order. Nothing leaves your device.",
+        "action": "Choose a template"
+      },
+      "guided": {
+        "title": "Answer questions, get a draft",
+        "body": "Describe your background in your own words. The assistant arranges it into a draft for you to check and correct.",
+        "action": "Start the questions"
+      }
+    },
+    "customise": {
+      "title": "Make it yours without breaking the layout",
+      "intro": "Controls stay within readable limits, so a change cannot easily ruin the page.",
+      "type": "Six font families, including Khmer support in each",
+      "layout": "Margins, spacing, page size and photo style",
+      "order": "Reorder, hide or add your own sections",
+      "history": "Undo and redo every change",
+      "colour": "Accent colour",
+      "font": "Font",
+      "template": "Template"
+    },
+    "assistant": {
+      "title": "Writing help when you want it",
+      "intro": "The optional assistant uses Google Gemini. It proposes changes; you decide what stays.",
+      "summary": {
+        "title": "Summaries",
+        "body": "Three versions written from the experience you entered."
+      },
+      "bullets": {
+        "title": "Experience points",
+        "body": "Tighten wording, fix grammar or start with stronger verbs."
+      },
+      "tailor": {
+        "title": "Job descriptions",
+        "body": "See which requirements your resume shows and which it does not."
+      },
+      "review": {
+        "title": "Review",
+        "body": "Notes on clarity, missing details and repetition."
+      },
+      "rulesTitle": "The rules it works under",
+      "rules": {
+        "invent": "It is told never to invent jobs, qualifications or figures, and new numbers are rejected automatically",
+        "approve": "No change is applied until you accept it",
+        "consent": "You are asked before any text is sent",
+        "optional": "Everything else works without it"
+      }
+    },
+    "ats": {
+      "title": "Check how machine-readable it is",
+      "intro": "Many employers use applicant tracking systems that read resumes before a person does.",
+      "column": "Single-column templates with plain structure",
+      "headings": "Standard section headings",
+      "text": "Real text in the PDF, not pictures of text",
+      "check": "A built-in check for contact details, structure and job keywords",
+      "disclaimer": "The score is an estimate. Hiring systems differ, and no tool can guarantee that a resume will pass them."
+    },
+    "faq": {
+      "title": "Questions",
+      "free": {
+        "q": "Do I need to pay or sign up?",
+        "a": "No. There are no accounts or payments in this app. AI features depend on the usage limits of the Gemini key the site is configured with."
+      },
+      "storage": {
+        "q": "Where is my resume stored?",
+        "a": "In this browser’s local database. Clearing browser data removes it, so export a backup file now and then."
+      },
+      "devices": {
+        "q": "Can I continue on another device?",
+        "a": "Yes, by exporting a backup file here and importing it there. There is no automatic sync."
+      },
+      "pdf": {
+        "q": "How does PDF download work?",
+        "a": "Your browser’s print window opens and you choose “Save as PDF”. This keeps Khmer and other scripts correct."
+      },
+      "ai": {
+        "q": "What is sent to the AI?",
+        "a": "Only the text a request needs, and only after you agree. Your name, contact details, photo and references are not included in the resume text that is sent."
+      },
+      "khmer": {
+        "q": "Can I write in Khmer?",
+        "a": "Yes. The interface and the resume headings are available in Khmer, and your own words are never translated automatically."
+      }
+    },
+    "final": {
+      "title": "Ready to write yours?",
+      "body": "Start now and come back to it whenever you like on this device."
+    }
+  },
+  "templates": {
+    "title": "Resume templates",
+    "intro": "Previews use fictional sample details. Your own text replaces them in the editor.",
+    "recommend": "Recommend a template",
+    "categoriesLabel": "Template categories",
+    "categories": {
+      "all": "All templates",
+      "professional": "Professional",
+      "modern": "Modern",
+      "classic": "Classic",
+      "minimalist": "Minimalist",
+      "creative": "Creative",
+      "executive": "Executive",
+      "academic": "Academic",
+      "ats": "ATS friendly",
+      "student": "Students and graduates"
+    },
+    "search": "Search templates",
+    "count": "{count, plural, =0 {No templates} one {# template} other {# templates}}",
+    "view": "Layout of the list",
+    "grid": "Grid",
+    "carousel": "Carousel",
+    "previous": "Previous template",
+    "next": "Next template",
+    "empty": "No template matches that search.",
+    "clear": "Clear filters",
+    "preview": "Preview",
+    "previewNamed": "Preview {name}",
+    "use": "Use template",
+    "fictional": "All details shown are fictional sample data.",
+    "characteristics": "Characteristics",
+    "traits": {
+      "single": "One column",
+      "two": "Two columns",
+      "photo": "Supports a photo",
+      "noPhoto": "No photo",
+      "ats": {
+        "high": "ATS compatibility: high",
+        "medium": "ATS compatibility: medium",
+        "low": "ATS compatibility: low"
+      }
+    }
+  },
+  "library": {
+    "title": "My resumes",
+    "storageNote": "Saved in this browser only. Export a backup to keep a copy or move to another device.",
+    "import": "Import backup",
+    "exportAll": "Export all",
+    "create": "New resume",
+    "untitled": "Untitled resume",
+    "storageError": "Browser storage is not available. It may be full or blocked, for example in some private windows.",
+    "unreadable": "{count, plural, one {# saved resume could not be read. It has been left untouched.} other {# saved resumes could not be read. They have been left untouched.}}",
+    "emptyTitle": "No resumes yet",
+    "emptyBody": "Create your first resume, or import a backup from another device.",
+    "browse": "Browse templates",
+    "search": "Search by title, name or role",
+    "sort": "Sort by",
+    "sortModified": "Last modified",
+    "sortCreated": "Date created",
+    "noMatches": "No resume matches that search.",
+    "edit": "Edit",
+    "createdOn": "Created {date}",
+    "updatedOn": "Modified {date}",
+    "actionsFor": "Actions for {title}",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "copyOf": "{title} (copy)",
+    "download": "Download PDF",
+    "exportJson": "Export backup file",
+    "delete": "Delete",
+    "name": "Resume name",
+    "saveName": "Save name",
+    "deleteTitle": "Delete this resume?",
+    "deleteBody": "“{title}” will be removed from this browser. This cannot be undone."
+  },
+  "backup": {
+    "imported": "Import finished: {added} added, {unchanged} already present.",
+    "skipped": "{count, plural, one {# entry was not valid and was skipped.} other {# entries were not valid and were skipped.}}",
+    "nothing": "There are no resumes to export.",
+    "errors": {
+      "too-large": "That file is too large to be a backup.",
+      "not-json": "That file could not be read. Choose a .json backup file.",
+      "not-backup": "That file is not a ResumeCraft backup.",
+      "no-valid": "The file contains no resume that can be restored.",
+      "failed": "The import failed. Nothing was changed."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "themeNote": "Affects the app only. Resume colours are set in each resume.",
+    "language": "Interface language",
+    "languageNote": "Your resume text is not translated.",
+    "data": "Your data",
+    "stored": "{count, plural, =0 {No resumes stored} one {# resume stored} other {# resumes stored}}",
+    "storedNote": "Kept in this browser’s local database.",
+    "usage": "This site uses about {size} MB of browser storage.",
+    "import": "Import backup",
+    "exportAll": "Export all",
+    "deleteAll": "Delete all data",
+    "deleteAllNote": "Removes every resume and preference stored by this app in this browser.",
+    "deleteAllTitle": "Delete all data?",
+    "deleteAllBody": "{count, plural, =0 {Your preferences will be removed.} one {# resume and your preferences will be removed.} other {# resumes and your preferences will be removed.}} This cannot be undone.",
+    "deleted": "All local data was deleted.",
+    "deleteFailed": "The data could not be deleted. Close other tabs of this app and try again.",
+    "ai": "AI assistant",
+    "aiStatus": "Availability",
+    "aiChecking": "Checking…",
+    "aiOn": "Gemini is configured. AI features are available.",
+    "aiOff": "Gemini is not configured on this site. The rest of the app works normally.",
+    "revoke": "Withdraw permission to send",
+    "notGiven": "Permission not given",
+    "privacyTitle": "Privacy and storage",
+    "privacy": {
+      "local": "Resumes, photos and preferences are stored in your browser. This app has no accounts and no resume database.",
+      "loss": "Clearing site data, using a private window or losing the device removes your resumes. Keep a backup file.",
+      "aiSend": "AI features need an internet connection. After you agree, the text for a request passes through this site’s server to Google Gemini, which processes it under Google’s terms. This app does not save or log that text.",
+      "noTracking": "There are no advertising or analytics trackers, and resume data is never placed in cookies."
+    }
+  },
+  "start": {
+    "title": "Create a resume",
+    "intro": "Choose how you want to begin. You can change everything later.",
+    "chooseTemplate": "1. Choose a template",
+    "manual": "2. Set up your resume",
+    "name": "Resume name",
+    "namePlaceholder": "For example: Frontend developer",
+    "language": "Resume language",
+    "languageHint": "Sets the section headings and date format.",
+    "example": "Fill with fictional example text, to try the editor",
+    "selected": "Selected template: {name}",
+    "create": "Create resume",
+    "guided": "Prefer to answer questions?",
+    "guidedBody": "The assistant turns your answers into a draft you can check and edit.",
+    "guidedAction": "Create with AI",
+    "continue": "Or continue an existing resume"
+  },
+  "dnd": {
+    "instructions": "To reorder, press space to pick up, use the arrow keys to move, press space to drop or escape to cancel.",
+    "picked": "Picked up item at position {position}.",
+    "over": "Item is over position {position}.",
+    "dropped": "Item dropped at position {position}.",
+    "cancelled": "Reordering cancelled.",
+    "handle": "Drag to reorder {name}",
+    "up": "Move {name} up",
+    "down": "Move {name} down"
+  },
+  "sections": {
+    "summary": "Summary",
+    "experience": "Work experience",
+    "education": "Education",
+    "skills": "Skills",
+    "projects": "Projects",
+    "certifications": "Certifications",
+    "languages": "Languages",
+    "awards": "Awards",
+    "achievements": "Achievements",
+    "volunteer": "Volunteering",
+    "publications": "Publications",
+    "references": "References",
+    "interests": "Interests",
+    "custom": "Custom section"
+  },
+  "editor": {
+    "heading": "Editing {title}",
+    "loading": "Opening your resume…",
+    "back": "Back to my resumes",
+    "titleLabel": "Resume name",
+    "undo": "Undo",
+    "redo": "Redo",
+    "changeTemplate": "Change template",
+    "changeTemplateNote": "Your text is kept. Colours and fonts reset to the new template’s defaults, and you can undo.",
+    "assistant": "Assistant",
+    "previewAction": "Full preview",
+    "collapseSections": "Hide section list",
+    "expandSections": "Show section list",
+    "resize": "Resize the editing panel",
+    "sectionsLabel": "Sections",
+    "personal": "Personal details",
+    "design": "Design",
+    "previousStep": "Previous",
+    "nextStep": "Next section",
+    "review": "Review resume",
+    "modes": "Editor views",
+    "tabs": {
+      "sections": "Sections",
+      "edit": "Edit",
+      "design": "Design",
+      "preview": "Preview"
+    },
+    "missing": {
+      "title": "Resume not found",
+      "body": "It may have been deleted, or created in a different browser."
+    },
+    "storage": {
+      "title": "This resume cannot be opened",
+      "body": "Browser storage failed, or the saved data was made by a newer version. Nothing has been changed."
+    },
+    "save": {
+      "saving": "Saving…",
+      "saved": "Saved on this device",
+      "error": "Not saved. Retry"
+    },
+    "preview": {
+      "label": "Resume preview",
+      "fullTitle": "Preview of {title}",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fitWidth": "Fit width",
+      "fitPage": "Fit page",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "pageOf": "Page {page} of {total}",
+      "pageSize": "Paper size",
+      "fullScreen": "Full screen"
+    },
+    "hide": "Hide {name}",
+    "show": "Show {name}",
+    "moveSection": "Move {name}",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "newSection": "New section",
+    "addSection": "Add a custom section",
+    "resetOrder": "Reset section order",
+    "emptyHidden": "Empty fields do not appear in your resume.",
+    "hiddenNotice": "This section is hidden from your resume.",
+    "showSection": "Show it",
+    "sectionGone": "This section no longer exists. Choose another one."
+  },
+  "form": {
+    "errors": {
+      "url": "Enter a web address, such as example.com.",
+      "email": "Check the email address.",
+      "phone": "Check the phone number.",
+      "dateOrder": "The end date is before the start date."
+    },
+    "photo": {
+      "upload": "Upload photo",
+      "replace": "Replace photo",
+      "remove": "Remove photo",
+      "alt": "Your profile photo",
+      "hint": "JPG, PNG or WebP up to 8 MB. It is cropped to a square and stays on your device.",
+      "unsupported": "The current template does not show a photo.",
+      "type": "Choose a JPG, PNG or WebP image.",
+      "size": "The image is larger than 8 MB.",
+      "decode": "That image could not be read."
+    },
+    "improve": "Improve with AI",
+    "write": "Write with AI",
+    "notSet": "Not set",
+    "untitledEntry": "Entry {number}",
+    "remove": "Remove {name}",
+    "removed": "Entry removed",
+    "undo": "Undo",
+    "suggestSkills": "Suggest skills with AI",
+    "quickAdd": "Type names, separated by commas",
+    "add": "Add",
+    "addEntry": "Add to {section}",
+    "empty": "Nothing in {section} yet.",
+    "month": "Month",
+    "year": "Year",
+    "bold": "Bold",
+    "italic": "Italic",
+    "bullets": "Bulleted list",
+    "formatSample": "text",
+    "richHint": "Start a line with “- ” for a bullet. Use **bold** and *italic*.",
+    "removeSectionBody": "“{name}” and everything in it will be removed. You can undo this."
+  },
+  "fields": {
+    "personal": {
+      "fullName": "Full name",
+      "headline": "Professional headline",
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Location",
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "website": "Website or portfolio",
+      "links": "Other links",
+      "linkLabel": "Label",
+      "linkUrl": "Web address",
+      "addLink": "Add a link"
+    },
+    "summary": {
+      "professional": "Professional summary",
+      "about": "About me",
+      "objective": "Career objective"
+    },
+    "custom": {
+      "sectionTitle": "Section title",
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "date": "Date",
+      "description": "Description",
+      "addItem": "Add item",
+      "removeSection": "Remove section"
+    },
+    "experience": {
+      "title": "Job title",
+      "company": "Company",
+      "employmentType": "Employment type",
+      "location": "Location",
+      "start": "Start date",
+      "end": "End date",
+      "current": "I work here now",
+      "description": "Responsibilities",
+      "achievements": "Achievements"
+    },
+    "education": {
+      "institution": "School or university",
+      "degree": "Degree",
+      "field": "Field of study",
+      "start": "Start date",
+      "end": "End date",
+      "gpa": "GPA or grade",
+      "description": "Description"
+    },
+    "skills": {
+      "name": "Skill",
+      "category": "Category",
+      "level": "Level"
+    },
+    "projects": {
+      "name": "Project name",
+      "date": "Date",
+      "technologies": "Technologies",
+      "url": "Live link",
+      "repo": "Code repository",
+      "description": "Description"
+    },
+    "certifications": {
+      "name": "Certification",
+      "issuer": "Issued by",
+      "credentialId": "Credential ID",
+      "issued": "Issue date",
+      "expires": "Expiry date",
+      "url": "Link"
+    },
+    "languages": {
+      "name": "Language",
+      "level": "Proficiency"
+    },
+    "awards": {
+      "title": "Award",
+      "issuer": "Issued by",
+      "date": "Date",
+      "description": "Description"
+    },
+    "achievements": {
+      "title": "Achievement",
+      "issuer": "Organisation",
+      "date": "Date",
+      "description": "Description"
+    },
+    "volunteer": {
+      "role": "Role",
+      "organization": "Organisation",
+      "start": "Start date",
+      "end": "End date",
+      "current": "I volunteer here now",
+      "description": "Description"
+    },
+    "publications": {
+      "title": "Title",
+      "publisher": "Publisher",
+      "date": "Date",
+      "url": "Link",
+      "description": "Description"
+    },
+    "references": {
+      "name": "Name",
+      "relationship": "Relationship",
+      "company": "Company",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "interests": {
+      "name": "Interest"
+    }
+  },
+  "options": {
+    "experience": {
+      "full-time": "Full-time",
+      "part-time": "Part-time",
+      "contract": "Contract",
+      "internship": "Internship",
+      "freelance": "Freelance"
+    },
+    "skills": {
+      "1": "1 — Beginner",
+      "2": "2 — Elementary",
+      "3": "3 — Intermediate",
+      "4": "4 — Advanced",
+      "5": "5 — Expert"
+    },
+    "languages": {
+      "basic": "Basic",
+      "conversational": "Conversational",
+      "professional": "Professional",
+      "fluent": "Fluent",
+      "native": "Native"
+    }
+  },
+  "design": {
+    "title": "Design",
+    "intro": "Changes apply to this resume only.",
+    "template": "Template",
+    "change": "Change",
+    "colour": "Colour",
+    "accent": "Accent colour",
+    "secondary": "Secondary colour",
+    "customColour": "Custom value for {label}",
+    "contrastNote": "This colour is faint on white paper and may be hard to read or print.",
+    "typography": "Text",
+    "font": "Font",
+    "bodySize": "Body size",
+    "headingSize": "Heading size",
+    "nameSize": "Name size",
+    "bodyWeight": "Body weight",
+    "headingWeight": "Heading weight",
+    "regular": "Regular",
+    "medium": "Medium",
+    "semibold": "Semibold",
+    "bold": "Bold",
+    "lineHeight": "Line spacing",
+    "layout": "Page layout",
+    "pageSize": "Paper size",
+    "margin": "Margins",
+    "sectionSpacing": "Space between sections",
+    "headerAlign": "Header alignment",
+    "left": "Left",
+    "center": "Centre",
+    "right": "Right",
+    "photo": "Photo",
+    "photoVisible": "Show photo",
+    "noPhotoYet": "Add a photo under Personal details.",
+    "photoSize": "Photo size",
+    "photoShape": "Photo shape",
+    "circle": "Circle",
+    "rounded": "Rounded",
+    "square": "Square",
+    "photoUnsupported": "This template is designed without a photo. Choose another template to include one.",
+    "document": "Document",
+    "language": "Resume language",
+    "languageHint": "Changes headings and dates. Your own text is not translated.",
+    "targetRole": "Target job",
+    "targetRoleHint": "Used by the assistant. It is not printed.",
+    "reset": "Revert recent design changes",
+    "restoreDefaults": "Restore template defaults"
+  },
+  "ai": {
+    "title": "Assistant",
+    "close": "Close assistant",
+    "taskLabel": "What do you want help with?",
+    "tasks": {
+      "chat": "Ask a question",
+      "summary": "Write a summary",
+      "improve": "Improve writing",
+      "skills": "Suggest skills",
+      "tailor": "Match a job description",
+      "review": "Review my resume",
+      "ats": "ATS compatibility check"
+    },
+    "checking": "Checking whether AI is available…",
+    "unavailableTitle": "AI features are not available",
+    "unavailableBody": "No Gemini API key is configured for this site. You can still write, design, check and download your resume.",
+    "consentTitle": "Before anything is sent",
+    "consentBody": "When you use an AI feature, the text that request needs is sent through this site’s server to Google Gemini, which processes it under Google’s terms.",
+    "consentExcluded": "Your name, contact details, links, photo and references are left out of resume text. Anything you type into a question or description is sent as written.",
+    "consentAllow": "I agree, enable AI features",
+    "working": "Waiting for Gemini…",
+    "retry": "Try again",
+    "errors": {
+      "not-configured": "The AI service is not set up correctly on this site. The API key or model name needs attention.",
+      "invalid-request": "That request could not be accepted. Try a shorter text.",
+      "forbidden": "The request was blocked. Reload the page and try again.",
+      "rate-limited": "Too many requests. Wait a minute, then try again.",
+      "quota": "The AI usage limit has been reached. Try again later. Your resume is not affected.",
+      "timeout": "Gemini took too long to answer.",
+      "bad-response": "Gemini returned an answer that could not be used.",
+      "unverified": "The suggestion added figures that are not in your text, so it was rejected.",
+      "upstream": "The AI service is not responding. Try again shortly.",
+      "network": "Could not connect. Check your internet connection.",
+      "daily-limit": "You have reached today’s AI limit on this device. It resets tomorrow."
+    },
+    "suggestion": {
+      "original": "Original",
+      "suggested": "Suggested",
+      "empty": "Empty",
+      "accept": "Accept",
+      "reject": "Reject",
+      "regenerate": "Regenerate",
+      "edit": "Edit",
+      "doneEditing": "Done editing"
+    },
+    "chat": {
+      "intro": "Ask about writing your resume or choosing a template.",
+      "starters": {
+        "template": "Which template suits my target job?",
+        "summary": "How do I write a good summary?",
+        "project": "How should I describe a project?",
+        "junior": "What should I include with little experience?",
+        "experience": "How can I make my experience clearer?"
+      },
+      "input": "Type your question",
+      "send": "Send",
+      "share": "Include my resume text",
+      "you": "You",
+      "assistant": "Assistant"
+    },
+    "summary": {
+      "intro": "Get three summaries based on what is already in your resume.",
+      "role": "Target job",
+      "goals": "Career goals (optional)",
+      "needContent": "Add some experience, education or skills first.",
+      "run": "Generate summaries",
+      "applied": "Summary updated",
+      "styles": {
+        "concise": "Concise",
+        "achievement": "Leads with an achievement",
+        "narrative": "Narrative"
+      }
+    },
+    "improve": {
+      "intro": "Choose a description and how to change it. Only that text and its title are sent.",
+      "none": "Add a job, project or volunteer role first.",
+      "which": "Text to improve",
+      "mode": "Kind of change",
+      "modes": {
+        "improve": "Improve overall",
+        "professional": "Rewrite professionally",
+        "concise": "Make concise",
+        "grammar": "Fix grammar",
+        "verbs": "Stronger action verbs",
+        "clarity": "Improve clarity",
+        "repetition": "Remove repetition"
+      },
+      "writeFirst": "Write something in that field first.",
+      "run": "Suggest a change",
+      "applied": "Text updated",
+      "changes": "What changed"
+    },
+    "skills": {
+      "intro": "Tick only skills you really have. Nothing is added until you confirm.",
+      "role": "Target job",
+      "run": "Suggest skills",
+      "needRole": "Enter your target job first.",
+      "nothing": "No new skills to suggest.",
+      "add": "{count, plural, =0 {Add selected skills} one {Add # skill} other {Add # skills}}",
+      "added": "{count, plural, one {# skill added} other {# skills added}}"
+    },
+    "tailor": {
+      "intro": "Compare your resume with a job advertisement.",
+      "job": "Job description",
+      "jobHint": "Paste at least a few sentences.",
+      "run": "Compare",
+      "keywords": "Keywords in the job",
+      "matching": "What you already show",
+      "missing": "Not shown in your resume",
+      "suggestions": "Suggested improvements",
+      "emphasise": "Experience to emphasise",
+      "honesty": "Add a requirement only if it is true of you."
+    },
+    "review": {
+      "intro": "Get notes on completeness, clarity, tone and keywords.",
+      "run": "Review with AI",
+      "areas": {
+        "completeness": "Completeness",
+        "clarity": "Clarity",
+        "readability": "Readability",
+        "tone": "Tone",
+        "organisation": "Organisation",
+        "keywords": "Keywords",
+        "missing": "Missing information",
+        "repetition": "Repetition"
+      },
+      "priority": {
+        "high": "High priority",
+        "medium": "Medium priority",
+        "low": "Low priority"
+      }
+    },
+    "recommend": {
+      "role": "Target job",
+      "industry": "Industry",
+      "level": "Experience level",
+      "levels": {
+        "student": "Student",
+        "junior": "Junior",
+        "mid": "Mid-level",
+        "senior": "Senior",
+        "lead": "Lead or manager"
+      },
+      "style": "Preferred style",
+      "styles": {
+        "any": "No preference",
+        "professional": "Professional",
+        "modern": "Modern",
+        "minimalist": "Minimalist",
+        "creative": "Creative"
+      },
+      "ats": "Must work well with applicant tracking systems",
+      "photo": "I want to include a photo",
+      "submit": "Recommend templates",
+      "best": "Recommended",
+      "alternative": "Alternative"
+    }
+  },
+  "guided": {
+    "title": "Create with AI",
+    "intro": "Answer in your own words. Skip anything that does not apply. You review the draft before it becomes a resume.",
+    "unavailable": "AI is not set up on this site, so a draft cannot be generated. You can still build your resume yourself.",
+    "manualLink": "Build it yourself",
+    "progress": "Progress through the questions",
+    "step": "Question {step} of {total}",
+    "reviewLabel": "Review",
+    "back": "Back",
+    "next": "Next",
+    "toReview": "Continue to draft",
+    "language": "Resume language",
+    "contact": {
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Location"
+    },
+    "questions": {
+      "contact": {
+        "title": "Your contact details",
+        "help": "These stay on your device and are not sent to the AI."
+      },
+      "target": {
+        "title": "What job are you aiming for?",
+        "help": "This shapes the wording and the template suggestions."
+      },
+      "work": {
+        "title": "Where have you worked?",
+        "help": "For each job: title, employer, dates and what you did.",
+        "placeholder": "Web developer at Example Studio, 2023 to now. Built the booking pages…"
+      },
+      "education": {
+        "title": "What have you studied?",
+        "help": "Schools, degrees or courses, with dates.",
+        "placeholder": "BSc Computer Science, Example University, 2019 to 2023"
+      },
+      "skills": {
+        "title": "Which skills do you have?",
+        "help": "Tools, methods and spoken languages.",
+        "placeholder": "TypeScript, React, Figma. Khmer (native), English (professional)"
+      },
+      "extras": {
+        "title": "Projects or certificates?",
+        "help": "Anything else worth showing.",
+        "placeholder": "A recipe app built with Next.js…"
+      },
+      "goals": {
+        "title": "What do you want next?",
+        "help": "A sentence or two about your goals.",
+        "placeholder": "I want to move into product-focused frontend work."
+      },
+      "preferences": {
+        "title": "How should it look?",
+        "help": "Used to recommend templates."
+      }
+    },
+    "reviewTitle": "Your draft",
+    "generate": "Generate draft",
+    "regenerate": "Generate again",
+    "templates": "Suggested templates",
+    "choose": "Choose",
+    "draft": "Check every line",
+    "draftNote": "AI can misread what you wrote. Edit or untick anything that is wrong.",
+    "removed": "Left out because they did not appear in your answers: {names}",
+    "include": "Include {section}",
+    "create": "Create resume with {template}",
+    "createBlank": "Create without a draft"
+  },
+  "ats": {
+    "score": "Estimated compatibility",
+    "disclaimer": "A rule-based estimate. Hiring systems differ, and no score guarantees that your resume will pass them.",
+    "job": "Job description (optional)",
+    "jobHint": "Checked on your device. English keywords only.",
+    "matched": "Found in your resume",
+    "missing": "Not found",
+    "keywordNote": "Add a missing word only where it is true of you.",
+    "aiTitle": "Optional AI feedback",
+    "status": {
+      "pass": "Passed",
+      "warn": "Could be better",
+      "fail": "Needs attention"
+    },
+    "checks": {
+      "name": {
+        "title": "Name",
+        "pass": "Your name is present.",
+        "warn": "Check your name.",
+        "fail": "Add your full name."
+      },
+      "email": {
+        "title": "Email",
+        "pass": "A valid email address is present.",
+        "warn": "Check your email address.",
+        "fail": "Add a valid email address."
+      },
+      "phone": {
+        "title": "Phone",
+        "pass": "A phone number is present.",
+        "warn": "Check your phone number.",
+        "fail": "Add a phone number."
+      },
+      "location": {
+        "title": "Location",
+        "pass": "A location is present.",
+        "warn": "Add a city or country.",
+        "fail": "Add a location."
+      },
+      "summary": {
+        "title": "Summary",
+        "pass": "The summary is a useful length.",
+        "warn": "The summary is very short or very long. Aim for two to four sentences.",
+        "fail": "Add a short summary."
+      },
+      "history": {
+        "title": "Experience",
+        "pass": "Work experience is listed.",
+        "warn": "No work experience. Make your education or projects detailed.",
+        "fail": "Add experience, education or projects."
+      },
+      "education": {
+        "title": "Education",
+        "pass": "Education is listed.",
+        "warn": "Consider adding your education.",
+        "fail": "Add your education."
+      },
+      "skills": {
+        "title": "Skills",
+        "pass": "{count} skills are listed.",
+        "warn": "Only {count} skills are listed. Add the relevant ones you have.",
+        "fail": "Add your skills."
+      },
+      "dates": {
+        "title": "Dates",
+        "pass": "Every job has dates.",
+        "warn": "{count} job entries are missing dates.",
+        "fail": "Add dates to your jobs."
+      },
+      "detail": {
+        "title": "Job descriptions",
+        "pass": "Jobs are described.",
+        "warn": "{count} jobs have little or no description.",
+        "fail": "Describe what you did in each job."
+      },
+      "headings": {
+        "title": "Section headings",
+        "pass": "Headings are conventional.",
+        "warn": "Unusual headings may not be recognised: {names}",
+        "fail": "Use conventional headings."
+      },
+      "sentences": {
+        "title": "Long text",
+        "pass": "Points are easy to scan.",
+        "warn": "{count} lines are very long. Split them.",
+        "fail": "Shorten long lines."
+      },
+      "fontSize": {
+        "title": "Text size",
+        "pass": "Body text is {size} pt.",
+        "warn": "{size} pt may be hard to read. Use at least 9 pt.",
+        "fail": "Increase the text size."
+      },
+      "length": {
+        "title": "Length",
+        "pass": "The length is manageable.",
+        "warn": "The descriptions total about {count} words. Consider trimming.",
+        "fail": "Shorten the resume."
+      },
+      "columns": {
+        "title": "Template layout",
+        "pass": "This template has a simple, readable structure.",
+        "warn": "Some systems misread this layout. A single-column template is safer.",
+        "fail": "This layout is decorative and may be misread. Use a single-column template for online applications."
+      },
+      "graphics": {
+        "title": "Graphics",
+        "pass": "No photo or rating graphics.",
+        "warn": "A photo or skill bars are shown. Systems ignore or misread them.",
+        "fail": "Both a photo and skill bars are shown. Consider removing them."
+      },
+      "keywords": {
+        "title": "Job keywords",
+        "pass": "{matched} of {total} keywords found.",
+        "warn": "{matched} of {total} keywords found.",
+        "fail": "Only {matched} of {total} keywords found."
+      }
+    }
+  }
+}
