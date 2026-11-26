@@ -269,6 +269,10 @@
   }
 }
 @media print {
+  /* In the dark theme the browser would otherwise paint the page margins black. */
+  html {
+    color-scheme: light !important;
+  }
   html,
   body {
     margin: 0 !important;

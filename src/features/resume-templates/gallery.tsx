@@ -101,19 +101,17 @@ export function TemplateGallery() {
             className="absolute inset-0 rounded-lg"
           />
         </div>
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold">{template.name}</h3>
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              {[
-                t(template.layout.columns === 'single' ? 'traits.single' : 'traits.two'),
-                t(template.photo ? 'traits.photo' : 'traits.noPhoto'),
-                t(`traits.ats.${template.ats}`),
-              ].join(' · ')}
-            </p>
-          </div>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <h3 className="min-w-0 truncate text-sm font-semibold">{template.name}</h3>
           {applyButton(template.id, 'secondary')}
         </div>
+        <p className="text-muted-foreground mt-1 text-xs">
+          {[
+            t(template.layout.columns === 'single' ? 'traits.single' : 'traits.two'),
+            t(template.photo ? 'traits.photo' : 'traits.noPhoto'),
+            t(`traits.ats.${template.ats}`),
+          ].join(' · ')}
+        </p>
         <p className="text-muted-foreground mt-1.5 flex-1 text-[13px]">
           {reason ?? template.description[locale]}
         </p>

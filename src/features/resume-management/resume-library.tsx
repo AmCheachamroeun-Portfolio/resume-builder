@@ -33,7 +33,7 @@ import { deleteResume, duplicateResume, listResumes, renameResume } from '@/lib/
 import { newLetter, saveLetter } from '@/lib/storage/letters';
 import type { Resume } from '@/types/resume';
 import { filterResumes, SORT_KEYS, type SortKey } from './filter-resumes';
-import { exportResume, useBackup } from './use-backup';
+import { useBackup, useExportResume } from './use-backup';
 
 function BackupReminder({ resumes, onBackup }: { resumes: Resume[]; onBackup: () => void }) {
   const t = useTranslations('library.reminder');
@@ -73,6 +73,7 @@ export function ResumeLibrary() {
     ),
   );
   const backup = useBackup();
+  const exportResume = useExportResume();
   const exporter = useExport();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('updatedAt');

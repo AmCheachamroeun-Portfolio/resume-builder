@@ -207,18 +207,22 @@ export const AI_RESPONSES = {
 export type AiResponse<A extends AiAction> = z.infer<(typeof AI_RESPONSES)[A]>;
 export type Draft = AiResponse<'generate-draft'> & { removed?: string[] };
 
-export type AiErrorCode =
-  | 'not-configured'
-  | 'invalid-key'
-  | 'model-unavailable'
-  | 'cancelled'
-  | 'invalid-request'
-  | 'forbidden'
-  | 'rate-limited'
-  | 'quota'
-  | 'timeout'
-  | 'bad-response'
-  | 'unverified'
-  | 'upstream'
-  | 'network'
-  | 'daily-limit';
+export const AI_ERROR_CODES = [
+  'not-configured',
+  'invalid-key',
+  'model-unavailable',
+  'cancelled',
+  'invalid-request',
+  'forbidden',
+  'rate-limited',
+  'quota',
+  'timeout',
+  'bad-response',
+  'blocked',
+  'too-long',
+  'unverified',
+  'upstream',
+  'network',
+  'daily-limit',
+] as const;
+export type AiErrorCode = (typeof AI_ERROR_CODES)[number];

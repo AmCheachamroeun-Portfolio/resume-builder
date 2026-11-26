@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { createId } from '@/lib/utils';
 import type { Resume } from '@/types/resume';
 import type { ResumeVersion, VersionKind } from '@/types/version';
@@ -19,6 +20,65 @@ const history = (resumeId: string) =>
 function fingerprint(resume: Resume) {
   const parsed = parseResume(resume);
   return JSON.stringify(parsed && { ...parsed, title: '', createdAt: 0, updatedAt: 0 });
+}
+
+const versionSchema = z.object({
+  id: z.string().min(1).max(64),
+  resumeId: z.string().min(1).max(64),
+  createdAt: z.number().int().nonnegative(),
+  kind: z.enum(['auto', 'manual', 'restore']),
+  name: z.string().max(80).default(''),
+  resume: z.unknown(),
+});
+
+/** Validates a stored or imported snapshot, returning null when it cannot be trusted. */
+export function parseVersion(input: unknown): ResumeVersion | null {
+  const result = versionSchema.safeParse(input);
+  if (!result.success) return null;
+  const resume = parseResume(result.data.resume);
+  return resume ? { ...result.data, resume } : null;
+}
+
+/** Every readable snapshot of the given resumes, oldest first. */
+export async function versionsOf(resumeIds: string[]): Promise<ResumeVersion[]> {
+  const rows = await db.versions.where('resumeId').anyOf(resumeIds).sortBy('createdAt');
+  return rows.flatMap((row) => parseVersion(row) ?? []);
+}
+
+/** What makes two snapshots the same one, whichever resume id they are filed under. */
+const identity = ({ createdAt, kind, name, resume }: ResumeVersion) =>
+  JSON.stringify([createdAt, kind, name, { ...resume, id: '' }]);
+
+/**
+ * Adds the snapshots a resume does not have yet. Stored ones are never replaced
+ * or pruned: where a limit is reached, the oldest incoming ones are left out.
+ * Call inside a transaction that covers the versions table.
+ */
+export async function addVersions(resumeId: string, incoming: ResumeVersion[]) {
+  const rows = await history(resumeId);
+  const present = new Set(rows.flatMap((row) => parseVersion(row) ?? []).map(identity));
+  let manual = rows.filter((r) => r.kind === 'manual').length;
+  let automatic = rows.length - manual;
+  let added = 0;
+  let leftOut = 0;
+  for (const version of [...incoming].sort((a, b) => b.createdAt - a.createdAt)) {
+    const next = { ...version, resumeId, resume: { ...version.resume, id: resumeId } };
+    const key = identity(next);
+    if (present.has(key)) continue;
+    const byHand = next.kind === 'manual';
+    if (byHand ? manual >= MANUAL_LIMIT : automatic >= AUTO_LIMIT) {
+      leftOut++;
+      continue;
+    }
+    // The id may belong to the resume this one was copied from.
+    if (await db.versions.get(next.id)) next.id = createId();
+    await db.versions.add(next);
+    present.add(key);
+    if (byHand) manual++;
+    else automatic++;
+    added++;
+  }
+  return { added, leftOut };
 }
 
 /** Newest first. Snapshots this version of the app cannot read are left alone. */

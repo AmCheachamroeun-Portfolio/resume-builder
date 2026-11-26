@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATA } from '@/constants/sample-resume';
 import { filterResumes } from '@/features/resume-management/filter-resumes';
 import { createResume } from '@/lib/resume-factory';
-import { createBackup, parseBackup, restoreBackup } from '@/lib/storage/backup';
+import {
+  backupWithHistory,
+  createBackup,
+  MAX_BACKUP_BYTES,
+  parseBackup,
+  restoreBackup,
+} from '@/lib/storage/backup';
 import { backupDue, FIRST_REMINDER, REMINDER_AGE } from '@/lib/storage/backup-reminder';
 import {
   copyLetter,
@@ -103,7 +109,13 @@ describe('JSON import and export', () => {
   it('round-trips exactly', () => {
     const resume = make('a');
     const parsed = parseBackup(createBackup([resume]));
-    expect(parsed).toEqual({ ok: true, resumes: [resume], letters: [], skipped: 0 });
+    expect(parsed).toEqual({
+      ok: true,
+      resumes: [resume],
+      letters: [],
+      versions: [],
+      skipped: 0,
+    });
   });
 
   it('explains why a file is refused', () => {
@@ -113,7 +125,10 @@ describe('JSON import and export', () => {
       ok: false,
       error: 'no-valid',
     });
-    expect(parseBackup(' '.repeat(21 * 1024 * 1024))).toEqual({ ok: false, error: 'too-large' });
+    expect(parseBackup(' '.repeat(MAX_BACKUP_BYTES + 1))).toEqual({
+      ok: false,
+      error: 'too-large',
+    });
   });
 
   it('skips invalid records and keeps valid ones', () => {
@@ -124,16 +139,16 @@ describe('JSON import and export', () => {
   it('never overwrites an existing resume', async () => {
     const original = make('a');
     await saveResume(original);
-    expect(await restoreBackup([original])).toEqual({ added: 0, unchanged: 1 });
+    expect(await restoreBackup([original])).toMatchObject({ added: 0, unchanged: 1 });
     const changed = { ...original, title: 'Different' };
-    expect(await restoreBackup([changed])).toEqual({ added: 1, unchanged: 0 });
+    expect(await restoreBackup([changed])).toMatchObject({ added: 1, unchanged: 0 });
     expect((await getResume('a'))?.title).toBe('a');
     expect((await listResumes()).resumes).toHaveLength(2);
   });
 
   it('does not replace a stored record it cannot read', async () => {
     await db.resumes.put({ id: 'a', schemaVersion: 99 } as never);
-    expect(await restoreBackup([make('a')])).toEqual({ added: 1, unchanged: 0 });
+    expect(await restoreBackup([make('a')])).toMatchObject({ added: 1, unchanged: 0 });
     expect(await db.resumes.get('a')).toMatchObject({ schemaVersion: 99 });
     expect(await db.resumes.count()).toBe(2);
   });
@@ -190,6 +205,85 @@ describe('version history', () => {
   });
 });
 
+describe('version history in backups', () => {
+  beforeEach(async () => {
+    await db.versions.clear();
+  });
+
+  /** A resume with one version saved by hand and one automatic one. */
+  async function withHistory() {
+    const resume = make('a');
+    await saveResume(resume);
+    await recordVersion({ ...resume, targetRole: 'First' }, 'manual', 'Draft', 1);
+    await recordVersion({ ...resume, targetRole: 'Second' }, 'auto', '', 2);
+    return resume;
+  }
+  const exported = async (resume: ReturnType<typeof make>) => {
+    const { text, historyIncluded } = await backupWithHistory([resume]);
+    expect(historyIncluded).toBe(true);
+    const parsed = parseBackup(text);
+    if (!parsed.ok) throw new Error(parsed.error);
+    return parsed;
+  };
+  const restore = (parsed: Awaited<ReturnType<typeof exported>>) =>
+    restoreBackup(parsed.resumes, parsed.letters, parsed.versions);
+
+  it('restores the history on a device that has nothing', async () => {
+    const backup = await exported(await withHistory());
+    await Promise.all([db.resumes.clear(), db.versions.clear()]);
+    expect(await restore(backup)).toMatchObject({ added: 1, versions: 2 });
+    expect((await listVersions('a')).map((v) => [v.name, v.resume.targetRole])).toEqual([
+      ['', 'Second'],
+      ['Draft', 'First'],
+    ]);
+  });
+
+  it('adds nothing twice, and brings back only what was deleted', async () => {
+    const backup = await exported(await withHistory());
+    expect(await restore(backup)).toMatchObject({ added: 0, versions: 0 });
+    await db.versions.delete((await listVersions('a'))[0]!.id);
+    expect(await restore(backup)).toMatchObject({ versions: 1 });
+    expect(await listVersions('a')).toHaveLength(2);
+  });
+
+  it('files the history under the copy when the resume has changed since', async () => {
+    const resume = await withHistory();
+    const backup = await exported(resume);
+    await saveResume({ ...resume, targetRole: 'Newer' });
+    expect(await restore(backup)).toMatchObject({ added: 1, versions: 2 });
+    expect(await listVersions('a')).toHaveLength(2);
+    const copy = (await listResumes()).resumes.find((r) => r.id !== 'a')!;
+    const history = await listVersions(copy.id);
+    expect(history).toHaveLength(2);
+    expect(history.every((v) => v.resume.id === copy.id)).toBe(true);
+    expect(await db.versions.count()).toBe(4);
+  });
+
+  it('never prunes stored versions to make room', async () => {
+    const backup = await exported(await withHistory());
+    await db.versions.clear();
+    for (let i = 0; i < AUTO_LIMIT; i++) {
+      await recordVersion({ ...make('a'), targetRole: `Role ${i}` }, 'auto', '', 100 + i);
+    }
+    const before = (await listVersions('a')).map((v) => v.id);
+    expect(await restore(backup)).toMatchObject({ versions: 1, versionsLeftOut: 1 });
+    expect((await listVersions('a')).map((v) => v.id)).toEqual(expect.arrayContaining(before));
+  });
+
+  it('skips snapshots that are invalid or belong to no resume in the file', () => {
+    const resume = make('a');
+    const version = { id: 'v', resumeId: 'a', createdAt: 1, kind: 'manual', name: '', resume };
+    const text = JSON.stringify({
+      app: 'resumecraft',
+      resumes: [resume],
+      versions: [version, { ...version, resumeId: 'gone' }, { ...version, resume: {} }, 7],
+    });
+    const parsed = parseBackup(text);
+    expect(parsed).toMatchObject({ ok: true, skipped: 3 });
+    expect(parsed.ok && parsed.versions).toHaveLength(1);
+  });
+});
+
 describe('cover letters', () => {
   beforeEach(async () => {
     await db.letters.clear();
@@ -224,9 +318,9 @@ describe('cover letters', () => {
     const parsed = parseBackup(createBackup([], [letter, { id: 'broken' } as never]));
     expect(parsed).toMatchObject({ ok: true, resumes: [], skipped: 1 });
     if (!parsed.ok) throw new Error('unreachable');
-    expect(await restoreBackup([], parsed.letters)).toEqual({ added: 0, unchanged: 1 });
+    expect(await restoreBackup([], parsed.letters)).toMatchObject({ added: 0, unchanged: 1 });
     await saveLetter({ ...letter, body: 'Changed since the backup' });
-    expect(await restoreBackup([], parsed.letters)).toEqual({ added: 1, unchanged: 0 });
+    expect(await restoreBackup([], parsed.letters)).toMatchObject({ added: 1, unchanged: 0 });
     const bodies = (await listLetters()).letters.map((l) => l.body);
     expect(bodies.sort()).toEqual(['Changed since the backup', 'Dear team']);
     await copyLetter(letter, 'Copy');

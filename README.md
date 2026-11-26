@@ -79,11 +79,11 @@ The audit behind the redesign is in [docs/redesign-audit.md](docs/redesign-audit
 - Import a PDF with selectable text, a Word `.docx` file or a ResumeCraft backup. You check every field before anything is saved. Scanned pages cannot be read.
 - **PDF** made by your browser's print window ("Save as PDF"), with selectable text and working links
 - **Word** file that downloads directly: editable, one column, same text, sections and links
-- **Backup** file with everything, to keep or move to another device
+- **Backup** file with your resumes, their version history and your cover letters, to keep or move to another device. Older backup files still import.
 
 **Applications**
 
-- Cover letters that copy your name and contact details from a resume, with live preview and PDF export
+- Cover letters that copy your name and contact details from a resume, with live preview and PDF or editable Word export
 - Job matching: compare a resume with an advert on your device, then (optionally) review suggested rewrites one by one and save them as a **new copy**
 - A compatibility check that lists what to fix and takes you to the place. It works without AI.
 
@@ -258,7 +258,7 @@ Without step 3 the only server limit is counted separately by each server instan
 - Sorting an imported file with Gemini is a separate button. Your name, email addresses, phone numbers and links are removed first; **everything else in the document is sent**, and you can read exactly what before pressing it.
 - The server does not store or log request content.
 - Photos are cropped and re-encoded on your device, which removes metadata such as location.
-- Clearing site data, using a private window or losing the device removes your documents. **Download a backup.** Backups include resumes and cover letters, but not version history.
+- Clearing site data, using a private window or losing the device removes your documents. **Download a backup.** Backups include resumes, their version history (with earlier wording) and cover letters.
 
 ### AI safeguards
 
@@ -291,8 +291,8 @@ These checks reduce mistakes but cannot prove that a sentence is true. Read ever
 - The AI features have been tested with fixed stand-in answers only, not against the real Gemini API. Run `pnpm verify:ai` before relying on them.
 - Khmer looks correct in the PDF, but copying or machine-reading it is unreliable: depending on the tool, characters come out reordered, spaced apart or missing. A hiring system may not read a Khmer PDF properly. The Word file keeps the text as typed.
 - Importing is never perfect. Two-column layouts and Khmer PDFs often need corrections, and scanned documents are not supported. Older `.doc` files are not supported.
-- Word files were checked with LibreOffice, not Microsoft Word. They use the "Khmer UI" font for Khmer, and WebP photos are left out. Cover letters export to PDF only.
-- Version history stays in this browser, is not part of backups, and is opened from the editor.
+- Word files were checked with LibreOffice, not Microsoft Word. They use the "Khmer UI" font for Khmer, and WebP photos are left out.
+- Version history is opened from the editor. A backup keeps up to 20 automatic and 30 named versions for each resume. Backup files up to 100 MB can be imported.
 - The compatibility check is an estimate and cannot guarantee that any hiring system accepts a resume. Keyword matching compares words, not meaning, and Khmer word splitting depends on the browser.
 - The Khmer interface text needs review by a fluent speaker before public release.
 - The fact checks are mechanical. They cannot detect every exaggeration or invented claim.
@@ -303,6 +303,5 @@ These checks reduce mistakes but cannot prove that a sentence is true. Read ever
 
 - Verify the AI features with a real key, then Firefox, Safari and real phones
 - Review of the Khmer text by a fluent speaker
-- Word export for cover letters, and version history inside backups
 - Installable offline app (AI would still need a connection)
 - Optional encrypted backup to the user's own cloud storage

@@ -26,16 +26,16 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useDownloadBackup } from '@/features/resume-management/use-backup';
 import { LOCALE_NAMES, useSwitchLocale } from '@/components/layout/preferences';
 import { Button } from '@/components/ui/button';
 import { Menu, type MenuItem } from '@/components/ui/overlays';
 import { useAssistant } from '@/features/ai-assistant/store';
 import { Link, useRouter } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
-import { createBackup } from '@/lib/storage/backup';
 import { saveCopy } from '@/lib/storage/db';
 import { setTheme, useTheme } from '@/lib/theme';
-import { downloadTextFile, safeFileName } from '@/lib/utils';
+import { safeFileName } from '@/lib/utils';
 import { useSaveStatus } from '@/stores/autosave';
 import { actions, useEditor } from '@/stores/editor-store';
 import type { Resume } from '@/types/resume';
@@ -123,6 +123,7 @@ export function Toolbar({
   const locale = useLocale();
   const switchLocale = useSwitchLocale();
   const router = useRouter();
+  const downloadBackup = useDownloadBackup();
 
   const duplicate = async () => {
     onRetrySave();
@@ -146,8 +147,7 @@ export function Toolbar({
     {
       label: t('backup'),
       icon: <FileDown />,
-      onSelect: () =>
-        downloadTextFile(`${safeFileName(resume.title)}.json`, createBackup([resume])),
+      onSelect: () => void downloadBackup(`${safeFileName(resume.title)}.json`, [resume]),
     },
     ...routing.locales.map((code, index) => ({
       label: LOCALE_NAMES[code],

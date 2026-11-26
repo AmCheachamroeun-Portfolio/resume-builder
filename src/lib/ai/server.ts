@@ -15,7 +15,11 @@ export const DEFAULT_MODEL = 'gemini-3.8-flash';
 export const TIMEOUT_MS = 40_000;
 
 export class AiFailure extends Error {
-  constructor(public code: AiErrorCode) {
+  constructor(
+    public code: AiErrorCode,
+    /** Gemini's HTTP status, when it sent one. Safe to log: it says nothing about the text. */
+    public status?: number,
+  ) {
     super(code);
   }
 }
@@ -44,6 +48,7 @@ function classify(error: unknown): AiErrorCode {
     // A rejected key or unknown model is a setup problem, not the visitor's.
     if (error.status === 401 || error.status === 403) return 'invalid-key';
     if (error.status === 404) return 'model-unavailable';
+    if (error.status === 408 || error.status === 504) return 'timeout';
     // Gemini reports a malformed key as a bad request rather than as 401.
     if (error.status === 400 && /api[ _-]?key/i.test(error.message)) return 'invalid-key';
     return 'upstream';
@@ -111,12 +116,25 @@ export type Generate = (params: {
   model: string;
   contents: string;
   config: Record<string, unknown>;
-}) => Promise<{ text?: string }>;
+}) => Promise<{
+  text?: string;
+  candidates?: { finishReason?: string }[];
+  promptFeedback?: { blockReason?: string };
+}>;
+
+/** One more try for Gemini's passing server errors. A used-up quota is never retried. */
+export const RETRY = { attempts: 2, initialDelay: 1, httpStatusCodes: [500, 502, 503] };
 
 const gemini: Generate = (params) => {
-  const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  const client = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY!,
+    httpOptions: { retryOptions: RETRY },
+  });
   return client.models.generateContent(params);
 };
+
+/** Reasons Gemini gives for withholding an answer. Asking again changes nothing. */
+const WITHHELD = new Set(['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII']);
 
 export async function runAi<A extends AiAction>(
   action: A,
@@ -133,9 +151,9 @@ export async function runAi<A extends AiAction>(
   // One automatic second attempt for malformed or unverifiable output.
   for (let attempt = 0; attempt < 2; attempt++) {
     if (cancelled?.aborted) throw new AiFailure('cancelled');
-    let text: string | undefined;
+    let response: Awaited<ReturnType<Generate>>;
     try {
-      ({ text } = await generate({
+      response = await generate({
         model: process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL,
         contents: buildPrompt(action, input),
         config: {
@@ -145,14 +163,24 @@ export async function runAi<A extends AiAction>(
           maxOutputTokens: action === 'parse-resume' ? 32_768 : 8192,
           abortSignal: signal,
         },
-      }));
+      });
     } catch (error) {
-      throw new AiFailure(cancelled?.aborted ? 'cancelled' : classify(error));
+      if (cancelled?.aborted) throw new AiFailure('cancelled');
+      throw new AiFailure(
+        timeout.aborted ? 'timeout' : classify(error),
+        error instanceof ApiError ? error.status : undefined,
+      );
+    }
+    const reason = response.candidates?.[0]?.finishReason ?? '';
+    if (response.promptFeedback?.blockReason || WITHHELD.has(reason)) {
+      throw new AiFailure('blocked');
     }
     let json: unknown;
     try {
-      json = JSON.parse(text ?? '');
+      json = JSON.parse(response.text ?? '');
     } catch {
+      // Cut off at the length limit: the same request would be cut off again.
+      if (reason === 'MAX_TOKENS') throw new AiFailure('too-long');
       failure = 'bad-response';
       continue;
     }

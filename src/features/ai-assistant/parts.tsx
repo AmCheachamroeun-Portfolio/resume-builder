@@ -43,7 +43,15 @@ export function AiGate({ children }: { children: ReactNode }) {
 }
 
 /** Failures that trying again cannot fix. */
-const NO_RETRY = ['not-configured', 'invalid-key', 'model-unavailable', 'daily-limit'];
+const NO_RETRY = [
+  'not-configured',
+  'invalid-key',
+  'model-unavailable',
+  'daily-limit',
+  'invalid-request',
+  'blocked',
+  'too-long',
+];
 
 export function AiStatusLine({
   loading,

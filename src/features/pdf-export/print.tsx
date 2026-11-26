@@ -75,6 +75,9 @@ async function printContent(
     await frame();
   } while (performance.now() - lastLayout < 200);
 
+  // A second export started while this one was settling; only the newer one prints.
+  if (active?.root !== root) return;
+
   // Chrome and Edge propose the document title as the file name.
   document.title = safeFileName(fileName);
   window.addEventListener('afterprint', cleanup);

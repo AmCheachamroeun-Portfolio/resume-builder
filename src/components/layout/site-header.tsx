@@ -30,17 +30,17 @@ export function SiteHeader() {
 
   return (
     <header className="border-border bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b supports-backdrop-filter:backdrop-blur-md">
-      <div className="container-page flex h-13 items-center gap-6">
+      <div className="container-page flex h-13 items-center gap-3 lg:gap-6">
         <Link href="/" aria-label="ResumeCraft" className="shrink-0 rounded-md">
           <Logo />
         </Link>
-        <nav aria-label={t('main')} className="hidden gap-1 md:flex">
+        <nav aria-label={t('main')} className="hidden gap-0.5 md:flex lg:gap-1">
           {LINKS.map(({ href, key }) => (
             <Link
               key={href}
               href={href}
               aria-current={current(href)}
-              className="text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:bg-muted rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors"
+              className="text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:bg-muted rounded-md px-2 py-1 text-[13px] font-medium whitespace-nowrap transition-colors lg:px-2.5"
             >
               {t(key)}
             </Link>

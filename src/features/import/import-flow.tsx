@@ -68,7 +68,6 @@ export function ImportFlow() {
 
   const read = async (file: File) => {
     reset();
-    if (file.size > MAX_IMPORT_BYTES) return setProblem('too-large');
     setReading(true);
     try {
       const kind = documentKind(file.name, new Uint8Array(await file.slice(0, 8).arrayBuffer()));
@@ -78,6 +77,7 @@ export function ImportFlow() {
         await backup.importFile(file);
         return;
       }
+      if (file.size > MAX_IMPORT_BYTES) throw new ImportFailure('too-large');
       const extract = kind === 'pdf' ? extractPdf : extractDocx;
       const { text, truncated } = await extract(await file.arrayBuffer());
       const fileName = file.name.replace(/\.(pdf|docx)$/i, '');

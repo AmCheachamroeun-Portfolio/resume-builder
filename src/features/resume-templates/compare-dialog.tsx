@@ -57,7 +57,10 @@ export function CompareDialog({
                 </div>
               ))}
             </dl>
-            <div className="mt-3">{action(template)}</div>
+            {/* Three columns leave little room on a phone, so the label may take two lines. */}
+            <div className="mt-3 [&>button]:h-auto [&>button]:min-h-9 [&>button]:px-2 [&>button]:py-1.5 [&>button]:leading-tight [&>button]:whitespace-normal">
+              {action(template)}
+            </div>
           </section>
         ))}
       </div>

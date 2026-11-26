@@ -51,8 +51,9 @@
     },
     "about": {
       "pdf": "Your browser makes the PDF. Pressing the button opens its print window, and the file is saved only when you choose Save as PDF there. Text stays sharp and selectable.",
-      "json": "Downloads directly. A backup holds everything in this resume and can be imported into ResumeCraft later. It is not meant to be sent to employers.",
-      "docx": "Downloads directly. An editable Word file with the same text, sections and links in a plain one-column layout. It does not copy the template’s design, so open it and check the page breaks."
+      "json": "Downloads directly. A backup holds this resume and its version history, including earlier wording, and can be imported into ResumeCraft later. It is not meant to be sent to employers.",
+      "docx": "Downloads directly. An editable Word file with the same text, sections and links in a plain one-column layout. It does not copy the template’s design, so open it and check the page breaks.",
+      "letterDocx": "Downloads directly. An editable Word file with your details, date, recipient and letter text. Open it and check the page breaks."
     },
     "fileName": "File name",
     "paper": "Paper size",
@@ -93,7 +94,9 @@
         "two": "Check the paper size is {size}.",
         "three": "Tap the PDF button and choose where to save."
       }
-    }
+    },
+    "docxFailed": "The Word file could not be created. Please try again.",
+    "letterTitle": "Export cover letter"
   },
   "landing": {
     "hero": {
@@ -103,7 +106,7 @@
       "secondary": "Browse templates",
       "note": "Free to use. No account. No watermark.",
       "documentName": "Frontend developer",
-      "caption": "The editor, shown with a fictional person."
+      "caption": "The editor, shown with sample content."
     },
     "showcase": {
       "title": "Twelve layouts, each with its own structure",
@@ -199,7 +202,7 @@
   },
   "templates": {
     "title": "Resume templates",
-    "intro": "Previews use fictional sample details. Your own text replaces them in the editor.",
+    "intro": "Previews use sample content. Your own text replaces it in the editor.",
     "recommend": "Recommend a template",
     "categoriesLabel": "Template categories",
     "categories": {
@@ -225,7 +228,7 @@
     "clear": "Clear",
     "previewNamed": "Preview {name}",
     "use": "Use template",
-    "fictional": "All details shown are fictional sample data.",
+    "fictional": "All templates are shown with sample content.",
     "traits": {
       "single": "One column",
       "two": "Two columns",
@@ -345,7 +348,10 @@
       "no-valid": "The file contains no resume that can be restored.",
       "failed": "The import failed. Nothing was changed."
     },
-    "exportFailed": "The backup could not be created."
+    "exportFailed": "The backup could not be created.",
+    "versionsImported": "{count, plural, one {# saved version restored.} other {# saved versions restored.}}",
+    "versionsLeftOut": "{count, plural, one {# older version was left out because the history is full.} other {# older versions were left out because the history is full.}}",
+    "historySkipped": "Version history could not be read, so this backup holds only the current documents."
   },
   "settings": {
     "title": "Settings",
@@ -384,8 +390,8 @@
   "start": {
     "title": "Create a resume",
     "intro": "Choose how you want to begin. You can change everything later.",
-    "chooseTemplate": "1. Choose a template",
-    "manual": "2. Set up your resume",
+    "chooseTemplate": "Choose a template",
+    "manual": "Set up your resume",
     "name": "Resume name",
     "namePlaceholder": "For example: Frontend developer",
     "language": "Resume language",
@@ -808,7 +814,9 @@
       "daily-limit": "You have reached today’s AI limit on this device. It resets tomorrow.",
       "invalid-key": "Gemini rejected the API key. The site owner needs to check GEMINI_API_KEY.",
       "model-unavailable": "The configured Gemini model is not available. The site owner needs to check GEMINI_MODEL.",
-      "cancelled": "The request was cancelled."
+      "cancelled": "The request was cancelled.",
+      "blocked": "Gemini would not answer for this text. Reword it, then try again.",
+      "too-long": "The answer was too long to finish. Try again with a shorter text."
     },
     "suggestion": {
       "original": "Original",
@@ -1187,7 +1195,7 @@
       "review": "Sorting is never perfect. Compare with your original and fix anything that is in the wrong place."
     },
     "drop": "Drop a file here",
-    "formats": "PDF with selectable text, Word (.docx) or a ResumeCraft backup (.json). Up to 10 MB.",
+    "formats": "PDF with selectable text, Word (.docx) or a ResumeCraft backup (.json). Up to 10 MB, or 100 MB for a backup.",
     "choose": "Choose a file",
     "reading": "Reading your file…",
     "local": "Your file is read inside this browser and is not uploaded. Khmer text from some PDF files comes out with characters missing or out of order, so check it carefully. A Word file usually reads better.",
@@ -1261,7 +1269,7 @@
   },
   "versions": {
     "title": "Version history",
-    "description": "Earlier states of this resume, kept in this browser only. They are not part of backup files.",
+    "description": "Earlier states of this resume, kept in this browser. Backup files include them.",
     "nameLabel": "Version name (optional)",
     "namePlaceholder": "Before changes for a new job",
     "save": "Save current version",
@@ -1313,7 +1321,7 @@
       "back": "All cover letters",
       "titleLabel": "Letter name",
       "copyName": "{title} (copy)",
-      "export": "Export PDF",
+      "export": "Export",
       "view": "Show",
       "write": "Write",
       "preview": "Preview",

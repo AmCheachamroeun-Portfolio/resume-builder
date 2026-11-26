@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  AI_ERROR_CODES,
   AI_RESPONSES,
   type AiAction,
   type AiErrorCode,
@@ -71,6 +72,18 @@ export class AiError extends Error {
   }
 }
 
+/** A little longer than the server's own limit, so its answer normally wins. */
+export const CLIENT_TIMEOUT = 65_000;
+
+/** For replies without our error body, such as a hosting platform's own error page. */
+const BY_STATUS: Record<number, AiErrorCode> = {
+  403: 'forbidden',
+  408: 'timeout',
+  413: 'invalid-request',
+  429: 'rate-limited',
+  504: 'timeout',
+};
+
 /** A courtesy cap on this device. The server enforces its own limits. */
 function countUsage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -91,20 +104,38 @@ export async function callAi<A extends AiAction>(
 ): Promise<AiResponse<A> & { removed?: string[] }> {
   if (!readConsent()) throw new AiError('forbidden');
   countUsage();
+  // Ends the wait if the visitor cancels, or if no answer ever arrives.
+  const request = new AbortController();
+  const cancel = () => request.abort(signal?.reason);
+  signal?.addEventListener('abort', cancel);
+  if (signal?.aborted) cancel();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    request.abort();
+  }, CLIENT_TIMEOUT);
   let response: Response;
+  let payload;
   try {
     response = await fetch(`/api/ai/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal,
+      signal: request.signal,
     });
+    payload = await response.json().catch(() => null);
+    if (request.signal.aborted) throw new Error('aborted');
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new AiError('network');
+    throw new AiError(timedOut ? 'timeout' : 'network');
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', cancel);
   }
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) throw new AiError((payload?.error as AiErrorCode) ?? 'upstream');
+  if (!response.ok) {
+    const known = AI_ERROR_CODES.find((code) => code === payload?.error);
+    throw new AiError(known ?? BY_STATUS[response.status] ?? 'upstream');
+  }
   const parsed = AI_RESPONSES[action].safeParse(payload?.data);
   if (!parsed.success) throw new AiError('bad-response');
   const removed = Array.isArray(payload.data.removed) ? payload.data.removed : undefined;

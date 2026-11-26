@@ -1,5 +1,5 @@
 import { ApiError } from '@google/genai';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATA, sampleResume } from '@/constants/sample-resume';
 import { resumeContext } from '@/features/ai-assistant/context';
 import { draftToData } from '@/features/ai-assistant/draft';
@@ -9,7 +9,8 @@ import { allowLocally } from '@/lib/ai/rate-limit';
 import { applyTailoring, readField, tailorFields } from '@/lib/ai/tailor';
 import { unsupportedTerms } from '@/lib/ats/analyze';
 import { AI_REQUESTS, AI_RESPONSES, type AiRequest, type Draft } from '@/lib/ai/schemas';
-import { AiFailure, runAi, toGeminiSchema, type Generate } from '@/lib/ai/server';
+import { AiFailure, RETRY, runAi, toGeminiSchema, type Generate } from '@/lib/ai/server';
+import { callAi, CLIENT_TIMEOUT } from '@/features/ai-assistant/client';
 
 /* Gemini is always mocked: no test calls the real service. */
 const generateContent = vi.fn();
@@ -100,6 +101,37 @@ describe('response validation', () => {
     expect(await code(new ApiError({ message: '', status: 404 }))).toBe('model-unavailable');
     expect(await code(new ApiError({ message: '', status: 500 }))).toBe('upstream');
     expect(await code(Object.assign(new Error(), { name: 'TimeoutError' }))).toBe('timeout');
+    expect(await code(new ApiError({ message: '', status: 504 }))).toBe('timeout');
+  });
+
+  it('retries passing server errors only, never a used-up quota', () => {
+    expect(RETRY.attempts).toBe(2);
+    expect(RETRY.httpStatusCodes).toContain(503);
+    expect(RETRY.httpStatusCodes).not.toContain(429);
+  });
+
+  it('says when Gemini withholds an answer, without asking again', async () => {
+    for (const response of [
+      { promptFeedback: { blockReason: 'SAFETY' } },
+      { candidates: [{ finishReason: 'PROHIBITED_CONTENT' }] },
+    ]) {
+      const generate = vi.fn<Generate>(async () => response);
+      await expect(runAi('improve-experience', improve, generate)).rejects.toMatchObject({
+        code: 'blocked',
+      });
+      expect(generate).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('says when an answer was cut off at the length limit', async () => {
+    const generate = vi.fn<Generate>(async () => ({
+      text: '{"text":"- Fix',
+      candidates: [{ finishReason: 'MAX_TOKENS' }],
+    }));
+    await expect(runAi('improve-experience', improve, generate)).rejects.toMatchObject({
+      code: 'too-long',
+    });
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 
   it('stops asking Gemini once the visitor cancels', async () => {
@@ -410,5 +442,44 @@ describe('route handler', () => {
     const body = { language: 'en', messages: [{ role: 'user', text: 'a' }] };
     await call('chat', body, headers);
     expect((await call('chat', body, headers)).status).toBe(429);
+  });
+});
+
+describe('browser requests', () => {
+  const body: AiRequest<'chat'> = { language: 'en', messages: [{ role: 'user', text: 'Hi' }] };
+  const answer = (response: Response) => {
+    vi.stubGlobal('localStorage', { getItem: () => '1', setItem: () => {} });
+    vi.stubGlobal('fetch', async () => response);
+    return callAi('chat', body);
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('explains error pages that do not come from the app', async () => {
+    const page = (status: number) => new Response('<html>', { status });
+    await expect(answer(page(504))).rejects.toMatchObject({ code: 'timeout' });
+    await expect(answer(page(429))).rejects.toMatchObject({ code: 'rate-limited' });
+    await expect(answer(page(500))).rejects.toMatchObject({ code: 'upstream' });
+    await expect(
+      answer(Response.json({ error: 'surprise' }, { status: 502 })),
+    ).rejects.toMatchObject({ code: 'upstream' });
+    await expect(answer(Response.json({ error: 'quota' }, { status: 429 }))).rejects.toMatchObject({
+      code: 'quota',
+    });
+  });
+
+  it('stops waiting when no answer arrives', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('localStorage', { getItem: () => '1', setItem: () => {} });
+    vi.stubGlobal(
+      'fetch',
+      (_: string, init: RequestInit) =>
+        new Promise((_resolve, reject) =>
+          init.signal!.addEventListener('abort', () => reject(new Error('aborted'))),
+        ),
+    );
+    const outcome = expect(callAi('chat', body)).rejects.toMatchObject({ code: 'timeout' });
+    await vi.advanceTimersByTimeAsync(CLIENT_TIMEOUT);
+    await outcome;
+    vi.useRealTimers();
   });
 });

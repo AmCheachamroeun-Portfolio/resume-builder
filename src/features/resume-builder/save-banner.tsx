@@ -3,8 +3,8 @@
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { createBackup } from '@/lib/storage/backup';
-import { downloadTextFile, safeFileName } from '@/lib/utils';
+import { useDownloadBackup } from '@/features/resume-management/use-backup';
+import { safeFileName } from '@/lib/utils';
 import { useSaveStatus } from '@/stores/autosave';
 import { useEditor } from '@/stores/editor-store';
 
@@ -19,13 +19,12 @@ export type SaveActions = {
 export function SaveBanner({ actions }: { actions: SaveActions }) {
   const t = useTranslations('editor.saveProblem');
   const status = useSaveStatus((s) => s.status);
+  const downloadBackup = useDownloadBackup();
   if (status !== 'error' && status !== 'conflict' && status !== 'deleted') return null;
 
   const download = () => {
     const resume = useEditor.getState().resume;
-    if (resume) {
-      downloadTextFile(`${safeFileName(resume.title)}.json`, createBackup([resume]));
-    }
+    if (resume) void downloadBackup(`${safeFileName(resume.title)}.json`, [resume]);
   };
 
   return (

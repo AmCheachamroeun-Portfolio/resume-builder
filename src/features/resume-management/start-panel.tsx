@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowRight, Check, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ import { Field, Input, Select } from '@/components/ui/field';
 import { SAMPLE_DATA } from '@/constants/sample-resume';
 import { SampleThumbnail } from '@/features/landing/previews';
 import { DEFAULT_TEMPLATE_ID, getTemplate, TEMPLATES } from '@/features/resume-templates/registry';
+import { TemplateTile } from '@/features/resume-templates/template-tile';
 import { Link } from '@/i18n/navigation';
 import { listResumes } from '@/lib/storage/db';
 import type { ContentLanguage } from '@/types/resume';
@@ -37,10 +38,10 @@ export function StartPanel() {
       <h1 className="title-page">{t('title')}</h1>
       <p className="text-muted-foreground mt-2 max-w-xl">{t('intro')}</p>
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <fieldset className="min-w-0">
           <legend className="mb-4 font-semibold">{t('chooseTemplate')}</legend>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 xl:grid-cols-4">
             {TEMPLATES.map((template) => (
               <label key={template.id} className="group cursor-pointer">
                 <input
@@ -50,15 +51,9 @@ export function StartPanel() {
                   checked={template.id === templateId}
                   onChange={() => setTemplate(template.id)}
                 />
-                <span className="bg-desk peer-checked:border-primary peer-focus-visible:outline-primary relative block rounded-md border-2 border-transparent p-2.5 peer-focus-visible:outline-2">
+                <TemplateTile name={template.name} selected={template.id === templateId}>
                   <SampleThumbnail templateId={template.id} className="shadow-paper" />
-                  {template.id === templateId && (
-                    <span className="bg-primary text-primary-foreground absolute top-1 right-1 grid size-6 place-items-center rounded-sm">
-                      <Check aria-hidden className="size-4" />
-                    </span>
-                  )}
-                </span>
-                <span className="mt-1.5 block text-sm font-medium">{template.name}</span>
+                </TemplateTile>
               </label>
             ))}
           </div>

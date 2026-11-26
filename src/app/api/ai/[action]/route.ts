@@ -18,6 +18,8 @@ const STATUS: Record<AiErrorCode, number> = {
   quota: 429,
   timeout: 504,
   'bad-response': 502,
+  blocked: 422,
+  'too-long': 422,
   unverified: 422,
   upstream: 502,
   network: 502,
@@ -71,7 +73,8 @@ export async function POST(request: Request, context: RouteContext<'/api/ai/[act
   } catch (error) {
     const code = error instanceof AiFailure ? error.code : 'upstream';
     // The code only: request bodies contain personal data and are never logged.
-    if (code !== 'cancelled') console.error(`[ai] ${name} failed: ${code}`);
+    const status = error instanceof AiFailure && error.status ? ` (Gemini ${error.status})` : '';
+    if (code !== 'cancelled') console.error(`[ai] ${name} failed: ${code}${status}`);
     return fail(code);
   }
 }

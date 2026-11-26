@@ -57,10 +57,12 @@ function Header({
   resume,
   template,
   interactive,
+  nameFit,
 }: {
   resume: Resume;
   template: TemplateDefinition;
   interactive: boolean;
+  nameFit: number;
 }) {
   const { personal } = resume.data;
   const { layout } = template;
@@ -94,7 +96,18 @@ function Header({
         />
       )}
       <div className="rc-identity">
-        {personal.fullName && <h1 className="rc-name">{name}</h1>}
+        {personal.fullName && (
+          <h1
+            className="rc-name"
+            style={
+              nameFit < 1
+                ? ({ '--rc-name': `${resume.design.nameSize * nameFit}pt` } as CSSProperties)
+                : undefined
+            }
+          >
+            {name}
+          </h1>
+        )}
         {personal.headline && <p className="rc-headline">{personal.headline}</p>}
       </div>
       {contact.length > 0 && <div className="rc-contacts">{contact}</div>}
@@ -127,6 +140,7 @@ function Page({
   side,
   index,
   interactive,
+  nameFit = 1,
 }: {
   resume: Resume;
   template: TemplateDefinition;
@@ -135,10 +149,13 @@ function Page({
   side: Block[];
   index: number;
   interactive: boolean;
+  nameFit?: number;
 }) {
   const { layout } = template;
   const place = header ? layout.header : null;
-  const head = <Header resume={resume} template={template} interactive={interactive} />;
+  const head = (
+    <Header resume={resume} template={template} interactive={interactive} nameFit={nameFit} />
+  );
   const hasKhmer = resume.language === 'km' || KHMER.test(JSON.stringify(resume.data));
   return (
     <div
@@ -168,6 +185,41 @@ function Page({
       </div>
     </div>
   );
+}
+
+/** 18 pt. A name that would need to be smaller is left to wrap anywhere instead. */
+const SMALLEST_NAME_PX = 24;
+
+/**
+ * A word of the name that is wider than its column would be cut in two. Measures
+ * the hidden copy and returns how far the name must shrink to keep words whole.
+ * The result is applied to that copy too, so pagination sees the final height.
+ */
+function fitName(root: HTMLElement) {
+  const heading = root.querySelector<HTMLElement>('.rc-name');
+  if (!heading?.offsetWidth) return 1;
+  heading.style.removeProperty('--rc-name');
+  const room = heading.getBoundingClientRect().width;
+  // Let long words run on, so that their full width can be read.
+  heading.style.overflowWrap = 'normal';
+  const range = document.createRange();
+  let widest = 0;
+  const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    for (const word of node.textContent!.matchAll(/[^\s-]+-?/g)) {
+      range.setStart(node, word.index);
+      range.setEnd(node, word.index + word[0].length);
+      widest = Math.max(widest, range.getBoundingClientRect().width);
+    }
+  }
+  heading.style.removeProperty('overflow-wrap');
+  if (widest <= room + 0.5) return 1;
+  // A little spare room absorbs rounding between screen and print.
+  const fit = Math.floor((room / widest) * 98) / 100;
+  const size = parseFloat(getComputedStyle(heading).fontSize);
+  if (size * fit < SMALLEST_NAME_PX) return 1;
+  heading.style.setProperty('--rc-name', `${size * fit}px`);
+  return fit;
 }
 
 /** Heights are measured on an unscaled hidden copy, then blocks are dealt onto pages. */
@@ -234,7 +286,11 @@ export const ResumeDocument = memo(function ResumeDocument({
   );
   const probe = useRef<HTMLDivElement>(null);
   const [fontsTick, setFontsTick] = useState(0);
-  const [result, setResult] = useState<{ columns: typeof columns; layout: Layout } | null>(null);
+  const [result, setResult] = useState<{
+    columns: typeof columns;
+    layout: Layout;
+    nameFit: number;
+  } | null>(null);
 
   // Re-measure when web fonts arrive, since they change line heights and wrapping.
   useEffect(() => {
@@ -263,10 +319,11 @@ export const ResumeDocument = memo(function ResumeDocument({
 
   useLayoutEffect(() => {
     if (!probe.current) return;
+    const nameFit = fitName(probe.current);
     const layout = measure(probe.current, columns);
     if (!layout) return;
     // Pagination depends on real DOM measurements, so it has to run after layout.
-    setResult({ columns, layout });
+    setResult({ columns, layout, nameFit });
   }, [columns, fontsTick, resume.design]);
 
   // Until the new measurement lands, keep showing the previous one to avoid flicker.
@@ -314,6 +371,7 @@ export const ResumeDocument = memo(function ResumeDocument({
               main={pick(shown.columns.main, shown.layout.main[index])}
               side={pick(shown.columns.side, shown.layout.side[index])}
               interactive={interactive}
+              nameFit={shown.nameFit}
             />
           );
           return wrapPage ? wrapPage(page, index, total) : page;

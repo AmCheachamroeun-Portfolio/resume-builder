@@ -24,7 +24,7 @@ test('a cover letter is written, saved, previewed and printed', async ({ page })
       document.documentElement.dataset.printed = document.title;
     };
   });
-  await page.getByRole('button', { name: 'Export PDF' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
   await page.getByLabel('File name').fill('acme-letter');
   await page.getByRole('button', { name: 'Open print window' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-printed', 'acme-letter');

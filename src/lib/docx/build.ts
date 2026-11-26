@@ -27,13 +27,17 @@ import { displayUrl, safeHref } from '@/lib/url';
 import type { Resume } from '@/types/resume';
 
 /** Page sizes and margins in twentieths of a point. */
-const PAGE = { a4: { width: 11906, height: 16838 }, letter: { width: 12240, height: 15840 } };
+export const PAGE = {
+  a4: { width: 11906, height: 16838 },
+  letter: { width: 12240, height: 15840 },
+};
 const TWIPS_PER_PX = 15;
 /** Ships with Windows; other systems substitute their own Khmer font. */
 export const KHMER_FONT = 'Khmer UI';
 
 /** XML cannot hold control characters, and one would make Word reject the file. */
-const clean = (text: string) => text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+export const clean = (text: string) =>
+  text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
 
 const link = (href: string, label: string) =>
   new ExternalHyperlink({

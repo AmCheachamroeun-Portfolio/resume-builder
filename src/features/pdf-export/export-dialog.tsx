@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Segmented, Select } from '@/components/ui/field';
 import { Dialog } from '@/components/ui/overlays';
 import { FittedPages } from '@/features/resume-templates/scaled-pages';
-import { createBackup } from '@/lib/storage/backup';
-import { cn, downloadFile, downloadTextFile, safeFileName } from '@/lib/utils';
+import { useDownloadBackup } from '@/features/resume-management/use-backup';
+import { cn, downloadFile, safeFileName } from '@/lib/utils';
 import type { PageSize, Resume } from '@/types/resume';
 import { detectBrowser, PRINT_BROWSERS, type PrintBrowser } from './browser';
 
@@ -27,6 +27,7 @@ export default function ExportDialog({ resume, onClose }: { resume: Resume; onCl
     detectBrowser(navigator.userAgent, navigator.maxTouchPoints),
   );
   const [busy, setBusy] = useState(false);
+  const downloadBackup = useDownloadBackup();
   // The chosen paper applies to this download; the stored design is left alone.
   const output = useMemo(
     () => ({ ...resume, design: { ...resume.design, pageSize: size } }),
@@ -38,7 +39,7 @@ export default function ExportDialog({ resume, onClose }: { resume: Resume; onCl
     setBusy(true);
     try {
       if (format === 'json') {
-        downloadTextFile(`${fileName}.json`, createBackup([resume]));
+        await downloadBackup(`${fileName}.json`, [resume]);
         onClose();
         return;
       }
@@ -54,7 +55,7 @@ export default function ExportDialog({ resume, onClose }: { resume: Resume; onCl
       onClose();
       await printResume(output, fileName);
     } catch {
-      toast.error(t('failed'));
+      toast.error(t(format === 'docx' ? 'docxFailed' : 'failed'));
       setBusy(false);
     }
   };
