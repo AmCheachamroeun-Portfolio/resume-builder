@@ -1,12 +1,22 @@
 'use client';
 
-import { AlignCenter, AlignLeft, AlignRight, LayoutTemplate, RotateCcw, Undo2 } from 'lucide-react';
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ChevronDown,
+  LayoutTemplate,
+  RotateCcw,
+  Undo2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Segmented, Select, Switch } from '@/components/ui/field';
+import { ACCENT_COLOURS } from '@/constants/design';
 import { RESUME_FONTS } from '@/features/resume-templates/fonts';
 import { getTemplate } from '@/features/resume-templates/registry';
+import { useSectionTitle } from '@/features/resume-builder/use-section-title';
 import { contrastRatio } from '@/lib/color';
 import { actions } from '@/stores/editor-store';
 import {
@@ -17,27 +27,24 @@ import {
   type FontId,
   type Resume,
 } from '@/types/resume';
-import { TemplatePicker } from './template-picker';
 
-const ACCENTS = [
-  '#111111',
-  '#1d3557',
-  '#2f5da8',
-  '#0f766e',
-  '#17694e',
-  '#8a2e2e',
-  '#c2410c',
-  '#6b4e3d',
-  '#5b3f8c',
-];
 const SECONDARIES = ['#1d2f4a', '#2b3441', '#1f332c', '#f3f4f6', '#f4eee8', '#eee9e1', '#e8eef3'];
 
+/** One collapsible group of the inspector. Open to begin with. */
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset className="border-border space-y-4 border-t pt-4">
-      <legend className="float-left w-full text-sm font-semibold">{title}</legend>
-      <div className="clear-both space-y-4">{children}</div>
-    </fieldset>
+    <details open className="group border-border border-b">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] font-semibold sm:px-5 [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown
+          aria-hidden
+          className="text-muted-foreground size-4 transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <div role="group" aria-label={title} className="space-y-4 px-4 pb-5 sm:px-5">
+        {children}
+      </div>
+    </details>
   );
 }
 
@@ -106,7 +113,8 @@ function Slider({
       <input
         id={id}
         type="range"
-        className="accent-primary w-full"
+        className="w-full"
+        style={{ '--fill': `${((design[name] - min) / (max - min)) * 100}%` } as CSSProperties}
         min={min}
         max={max}
         step={step}
@@ -117,38 +125,46 @@ function Slider({
   );
 }
 
-export function DesignPanel({ resume }: { resume: Resume }) {
+export function DesignPanel({
+  resume,
+  onChangeTemplate,
+}: {
+  resume: Resume;
+  onChangeTemplate: () => void;
+}) {
   const t = useTranslations('design');
   const { design } = resume;
   const template = getTemplate(resume.templateId);
-  const [picking, setPicking] = useState(false);
+  const title = useSectionTitle(resume);
   // The look as it was when this panel first opened for the current template.
   const [opened, setOpened] = useState({ templateId: resume.templateId, design });
   if (opened.templateId !== resume.templateId) setOpened({ templateId: resume.templateId, design });
   const lowContrast = contrastRatio(design.accent, '#ffffff') < 4.5;
+  const row = 'flex flex-wrap items-center justify-between gap-2';
+  const label = 'text-[13px] font-medium';
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5 p-4 sm:p-5">
-      <div>
-        <h2 className="display text-xl">{t('title')}</h2>
+    <div data-resume-history className="mx-auto w-full max-w-2xl">
+      <div className="border-border border-b px-4 py-4 sm:px-5">
+        <h2 className="title-panel">{t('title')}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t('intro')}</p>
-      </div>
-      <div className="border-border bg-surface flex items-center justify-between gap-3 rounded-lg border p-3">
-        <div>
-          <p className="text-muted-foreground text-xs">{t('template')}</p>
-          <p className="text-sm font-semibold">{template.name}</p>
+        <div className="border-border bg-panel mt-3 flex items-center justify-between gap-3 rounded-lg border p-3">
+          <div className="min-w-0">
+            <p className="text-muted-foreground text-xs">{t('template')}</p>
+            <p className="truncate text-sm font-semibold">{template.name}</p>
+          </div>
+          <Button size="sm" onClick={onChangeTemplate}>
+            <LayoutTemplate />
+            {t('change')}
+          </Button>
         </div>
-        <Button size="sm" onClick={() => setPicking(true)}>
-          <LayoutTemplate />
-          {t('change')}
-        </Button>
       </div>
 
       <Group title={t('colour')}>
         <Swatches
           label={t('accent')}
           value={design.accent}
-          options={ACCENTS}
+          options={ACCENT_COLOURS}
           onChange={(accent) => actions.setDesign({ accent })}
         />
         {lowContrast && <p className="text-warning text-xs">{t('contrastNote')}</p>}
@@ -181,8 +197,8 @@ export function DesignPanel({ resume }: { resume: Resume }) {
         <Slider name="bodySize" design={design} unit=" pt" />
         <Slider name="headingSize" design={design} unit=" pt" />
         <Slider name="nameSize" design={design} unit=" pt" />
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[13px] font-medium">{t('bodyWeight')}</span>
+        <div className={row}>
+          <span className={label}>{t('bodyWeight')}</span>
           <Segmented
             label={t('bodyWeight')}
             value={design.bodyWeight}
@@ -193,8 +209,8 @@ export function DesignPanel({ resume }: { resume: Resume }) {
             ]}
           />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[13px] font-medium">{t('headingWeight')}</span>
+        <div className={row}>
+          <span className={label}>{t('headingWeight')}</span>
           <Segmented
             label={t('headingWeight')}
             value={design.headingWeight}
@@ -206,12 +222,11 @@ export function DesignPanel({ resume }: { resume: Resume }) {
             ]}
           />
         </div>
-        <Slider name="lineHeight" design={design} unit="" />
       </Group>
 
       <Group title={t('layout')}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[13px] font-medium">{t('pageSize')}</span>
+        <div className={row}>
+          <span className={label}>{t('pageSize')}</span>
           <Segmented
             label={t('pageSize')}
             value={design.pageSize}
@@ -224,9 +239,10 @@ export function DesignPanel({ resume }: { resume: Resume }) {
         </div>
         <Slider name="margin" design={design} unit=" px" />
         <Slider name="sectionSpacing" design={design} unit=" px" />
+        <Slider name="lineHeight" design={design} unit="" />
         {template.supportsHeaderAlign && (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[13px] font-medium">{t('headerAlign')}</span>
+          <div className={row}>
+            <span className={label}>{t('headerAlign')}</span>
             <Segmented
               label={t('headerAlign')}
               value={design.headerAlign}
@@ -253,8 +269,8 @@ export function DesignPanel({ resume }: { resume: Resume }) {
               <p className="text-muted-foreground text-xs">{t('noPhotoYet')}</p>
             )}
             <Slider name="photoSize" design={design} unit=" px" />
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[13px] font-medium">{t('photoShape')}</span>
+            <div className={row}>
+              <span className={label}>{t('photoShape')}</span>
               <Segmented
                 label={t('photoShape')}
                 value={design.photoShape}
@@ -269,6 +285,17 @@ export function DesignPanel({ resume }: { resume: Resume }) {
         ) : (
           <p className="text-muted-foreground text-sm">{t('photoUnsupported')}</p>
         )}
+      </Group>
+
+      <Group title={t('visibility')}>
+        {resume.sections.map(({ key, visible }) => (
+          <Switch
+            key={key}
+            label={title(key)}
+            checked={visible}
+            onCheckedChange={() => actions.toggleSection(key)}
+          />
+        ))}
       </Group>
 
       <Group title={t('document')}>
@@ -296,20 +323,20 @@ export function DesignPanel({ resume }: { resume: Resume }) {
         </Field>
       </Group>
 
-      <div className="border-border flex flex-wrap gap-2 border-t pt-4">
+      <div className="flex flex-wrap gap-2 px-4 py-4 sm:px-5">
         <Button
+          size="sm"
           disabled={JSON.stringify(opened.design) === JSON.stringify(design)}
           onClick={() => actions.setDesign(opened.design)}
         >
           <Undo2 />
           {t('reset')}
         </Button>
-        <Button onClick={actions.resetDesign}>
+        <Button size="sm" onClick={actions.resetDesign}>
           <RotateCcw />
           {t('restoreDefaults')}
         </Button>
       </div>
-      <TemplatePicker resume={resume} open={picking} onOpenChange={setPicking} />
     </div>
   );
 }

@@ -22,23 +22,33 @@ function SummaryForm({ resume }: { resume: Resume }) {
   return (
     <div className="space-y-5">
       {(['professional', 'about', 'objective'] as const).map((name) => (
-        <RichInput
-          key={name}
-          label={t(name)}
-          value={resume.data.summary[name]}
-          onChange={(value) => actions.setSummary({ [name]: value })}
-          assistLabel={form('write')}
-          onAssist={name === 'professional' ? () => openAssistant('summary') : undefined}
-        />
+        <div key={name} data-entry={`summary.${name}`}>
+          <RichInput
+            label={t(name)}
+            value={resume.data.summary[name]}
+            onChange={(value) => actions.setSummary({ [name]: value })}
+            assist={{ role: resume.targetRole, language: resume.language }}
+            generateLabel={form('write')}
+            onGenerate={name === 'professional' ? () => openAssistant('summary') : undefined}
+          />
+        </div>
       ))}
     </div>
   );
 }
 
-function CustomForm({ section, onRemoved }: { section: CustomSection; onRemoved: () => void }) {
+function CustomForm({
+  section,
+  language,
+  onRemoved,
+}: {
+  section: CustomSection;
+  language: Resume['language'];
+  onRemoved: () => void;
+}) {
   const t = useTranslations('fields.custom');
   const form = useTranslations('form');
-  const { openIds, setOpen } = useOpenIds();
+  const { openIds, setOpen, setAll } = useOpenIds();
   const [confirming, setConfirming] = useState(false);
   const removed = useRemovedToast();
   const setItems = (items: CustomSection['items']) =>
@@ -68,13 +78,22 @@ function CustomForm({ section, onRemoved }: { section: CustomSection; onRemoved:
           setItems(section.items.filter((i) => i.id !== item.id));
           removed();
         }}
+        onDuplicate={(item) => {
+          const id = createId();
+          const index = section.items.findIndex((i) => i.id === item.id);
+          const items = [...section.items];
+          items.splice(index + 1, 0, { ...item, id });
+          setItems(items);
+          setOpen(id, true);
+        }}
         openIds={openIds}
         setOpen={setOpen}
+        setAll={setAll}
         renderBody={(item) => {
           const patch = (change: Partial<typeof item>) =>
             setItems(section.items.map((i) => (i.id === item.id ? { ...i, ...change } : i)));
           return (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               {(['title', 'subtitle'] as const).map((name) => (
                 <Field key={name} label={t(name)}>
                   {(props) => (
@@ -88,11 +107,12 @@ function CustomForm({ section, onRemoved }: { section: CustomSection; onRemoved:
                 </Field>
               ))}
               <DateInput label={t('date')} value={item.date} onChange={(date) => patch({ date })} />
-              <div className="sm:col-span-2">
+              <div className="@md:col-span-2">
                 <RichInput
                   label={t('description')}
                   value={item.description}
                   onChange={(description) => patch({ description })}
+                  assist={{ role: item.title, language }}
                 />
               </div>
             </div>
@@ -150,8 +170,12 @@ export function SectionEditor({
   const heading = selected === 'personal' ? t('personal') : title(selected);
 
   return (
-    <div className="mx-auto w-full max-w-2xl p-4 sm:p-5">
-      <h2 className="display text-xl">{heading}</h2>
+    <div
+      data-resume-history
+      data-entry={`section:${selected}`}
+      className="@container mx-auto w-full max-w-2xl p-4 sm:p-5"
+    >
+      <h2 className="title-panel">{heading}</h2>
       <p className="text-muted-foreground mt-1 mb-5 text-sm">{t('emptyHidden')}</p>
       {state && !state.visible && (
         <div className="bg-warning-soft text-warning mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2 text-sm">
@@ -170,7 +194,12 @@ export function SectionEditor({
         <SummaryForm resume={resume} />
       ) : selected.startsWith('custom:') ? (
         custom ? (
-          <CustomForm key={custom.id} section={custom} onRemoved={() => onSelect('personal')} />
+          <CustomForm
+            key={custom.id}
+            section={custom}
+            language={resume.language}
+            onRemoved={() => onSelect('personal')}
+          />
         ) : (
           <p className="text-muted-foreground text-sm">{t('sectionGone')}</p>
         )

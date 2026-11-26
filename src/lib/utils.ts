@@ -10,7 +10,11 @@ export function createId(): string {
 }
 
 export function downloadTextFile(filename: string, content: string, type = 'application/json') {
-  const url = URL.createObjectURL(new Blob([content], { type }));
+  downloadFile(filename, new Blob([content], { type }));
+}
+
+export function downloadFile(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;

@@ -21,15 +21,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     namespace: 'meta',
   });
   return {
-    title: { default: t('title'), template: '%s · ResumeCraft AI' },
+    title: { default: t('title'), template: '%s · ResumeCraft' },
     description: t('description'),
   };
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f6f5f1' },
-    { media: '(prefers-color-scheme: dark)', color: '#121416' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f5f7' },
+    { media: '(prefers-color-scheme: dark)', color: '#17171a' },
   ],
 };
 

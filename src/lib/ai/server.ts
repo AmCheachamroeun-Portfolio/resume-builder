@@ -1,7 +1,7 @@
 /* Server only: reads GEMINI_API_KEY. Imported exclusively by route handlers and tests. */
 import { ApiError, GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
-import { groundDraft, inventedNumbers } from './guards';
+import { checkTailoring, groundDraft, groundImport, inventedNumbers } from './guards';
 import { buildPrompt, SYSTEM_PROMPT } from './prompts';
 import {
   AI_RESPONSES,
@@ -42,7 +42,10 @@ function classify(error: unknown): AiErrorCode {
   if (error instanceof ApiError) {
     if (error.status === 429) return 'quota';
     // A rejected key or unknown model is a setup problem, not the visitor's.
-    if ([400, 401, 403, 404].includes(error.status)) return 'not-configured';
+    if (error.status === 401 || error.status === 403) return 'invalid-key';
+    if (error.status === 404) return 'model-unavailable';
+    // Gemini reports a malformed key as a bad request rather than as 401.
+    if (error.status === 400 && /api[ _-]?key/i.test(error.message)) return 'invalid-key';
     return 'upstream';
   }
   const name = error instanceof Error ? error.name : '';
@@ -75,10 +78,30 @@ function verify<A extends AiAction>(
     const { skills } = output as AiResponse<'suggest-skills'>;
     return { skills: skills.filter((s) => !existing.has(s.name.toLocaleLowerCase())) };
   }
+  if (action === 'tailor-resume') {
+    return checkTailoring(
+      output as AiResponse<'tailor-resume'>,
+      input as AiRequest<'tailor-resume'>,
+    );
+  }
+  if (action === 'cover-letter') {
+    const request = input as AiRequest<'cover-letter'>;
+    const { body } = output as AiResponse<'cover-letter'>;
+    // Figures from the job advert are not the applicant's, so they do not count.
+    const source = `${request.context}\n${request.jobTitle}\n${request.company}`;
+    const placeholder = /\[[^\]\n]{1,60}\]/.test(body);
+    return placeholder || inventedNumbers(source, body).length ? null : output;
+  }
   if (action === 'generate-draft') {
     return groundDraft(
       output as AiResponse<'generate-draft'>,
       input as AiRequest<'generate-draft'>,
+    );
+  }
+  if (action === 'parse-resume') {
+    return groundImport(
+      output as AiResponse<'parse-resume'>,
+      (input as AiRequest<'parse-resume'>).text,
     );
   }
   return output;
@@ -99,13 +122,17 @@ export async function runAi<A extends AiAction>(
   action: A,
   input: AiRequest<A>,
   generate: Generate = gemini,
+  /** Aborts when the visitor cancels or leaves, so nothing more is asked of Gemini. */
+  cancelled?: AbortSignal,
 ): Promise<unknown> {
   const schema = AI_RESPONSES[action] as unknown as z.ZodType<AiResponse<A>>;
-  const signal = AbortSignal.timeout(TIMEOUT_MS);
+  const timeout = AbortSignal.timeout(TIMEOUT_MS);
+  const signal = cancelled ? AbortSignal.any([timeout, cancelled]) : timeout;
   let failure: AiErrorCode = 'bad-response';
 
   // One automatic second attempt for malformed or unverifiable output.
   for (let attempt = 0; attempt < 2; attempt++) {
+    if (cancelled?.aborted) throw new AiFailure('cancelled');
     let text: string | undefined;
     try {
       ({ text } = await generate({
@@ -115,12 +142,12 @@ export async function runAi<A extends AiAction>(
           systemInstruction: SYSTEM_PROMPT,
           responseMimeType: 'application/json',
           responseJsonSchema: toGeminiSchema(schema),
-          maxOutputTokens: 8192,
+          maxOutputTokens: action === 'parse-resume' ? 32_768 : 8192,
           abortSignal: signal,
         },
       }));
     } catch (error) {
-      throw new AiFailure(classify(error));
+      throw new AiFailure(cancelled?.aborted ? 'cancelled' : classify(error));
     }
     let json: unknown;
     try {

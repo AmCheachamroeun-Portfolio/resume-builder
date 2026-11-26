@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
 import { createResume } from '@/lib/resume-factory';
 import { saveResume } from '@/lib/storage/db';
-import type { ContentLanguage, ResumeData } from '@/types/resume';
+import type { ContentLanguage, Design, ResumeData } from '@/types/resume';
 
 export function useCreateResume() {
   const t = useTranslations('library');
@@ -20,6 +20,7 @@ export function useCreateResume() {
     language?: ContentLanguage;
     data?: ResumeData;
     targetRole?: string;
+    design?: Partial<Design>;
   }) => {
     setCreating(true);
     try {

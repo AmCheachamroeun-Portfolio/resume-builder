@@ -19,7 +19,7 @@ export type Block = {
 
 export type ColumnBlocks = { main: Block[]; side: Block[] };
 
-type Entry = {
+export type Entry = {
   id: string;
   title: string;
   subtitle?: string;
@@ -40,7 +40,7 @@ function links(...values: string[]) {
 }
 
 /** Normalises every list section into entries, dropping anything left empty. */
-function entriesFor(key: BuiltInSection, resume: Resume): Entry[] {
+export function entriesFor(key: BuiltInSection, resume: Resume): Entry[] {
   const { data, language } = resume;
   const labels = DOCUMENT_LABELS[language];
   const range = (s: string, e: string, c = false) => formatRange(s, e, c, language);
@@ -174,12 +174,7 @@ export function contactItems(resume: Resume, icons: boolean, interactive = true)
   });
 }
 
-function entryBlocks(
-  prefix: string,
-  entry: Entry,
-  variant: string,
-  interactive = true,
-): Block[] {
+function entryBlocks(prefix: string, entry: Entry, variant: string, interactive = true): Block[] {
   const lines = (entry.body ?? []).flatMap(parseRich);
   const head: Block = {
     key: `${prefix}-${entry.id}`,

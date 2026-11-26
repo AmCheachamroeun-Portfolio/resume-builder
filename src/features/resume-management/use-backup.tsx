@@ -3,8 +3,10 @@
 import { useTranslations } from 'next-intl';
 import { useRef, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { createBackup, MAX_BACKUP_BYTES, parseBackup, restoreResumes } from '@/lib/storage/backup';
+import { createBackup, MAX_BACKUP_BYTES, parseBackup, restoreBackup } from '@/lib/storage/backup';
+import { reminderState } from '@/lib/storage/backup-reminder';
 import { listResumes } from '@/lib/storage/db';
+import { listLetters } from '@/lib/storage/letters';
 import { downloadTextFile, safeFileName } from '@/lib/utils';
 import type { Resume } from '@/types/resume';
 
@@ -22,7 +24,7 @@ export function useBackup() {
     try {
       const parsed = parseBackup(await file.text());
       if (!parsed.ok) return toast.error(t(`errors.${parsed.error}`));
-      const { added, unchanged } = await restoreResumes(parsed.resumes);
+      const { added, unchanged } = await restoreBackup(parsed.resumes, parsed.letters);
       toast.success(t('imported', { added, unchanged }));
       if (parsed.skipped) toast.warning(t('skipped', { count: parsed.skipped }));
     } catch {
@@ -31,10 +33,15 @@ export function useBackup() {
   };
 
   const exportAll = async () => {
-    const { resumes } = await listResumes();
-    if (!resumes.length) return toast.info(t('nothing'));
-    const day = new Date().toISOString().slice(0, 10);
-    downloadTextFile(`resumecraft-backup-${day}.json`, createBackup(resumes));
+    try {
+      const [{ resumes }, { letters }] = await Promise.all([listResumes(), listLetters()]);
+      if (!resumes.length && !letters.length) return toast.info(t('nothing'));
+      const day = new Date().toISOString().slice(0, 10);
+      downloadTextFile(`resumecraft-backup-${day}.json`, createBackup(resumes, letters));
+      reminderState.backedUp();
+    } catch {
+      toast.error(t('exportFailed'));
+    }
   };
 
   const fileInput: ReactNode = (
@@ -52,5 +59,5 @@ export function useBackup() {
     />
   );
 
-  return { fileInput, openImport: () => input.current?.click(), exportAll };
+  return { fileInput, openImport: () => input.current?.click(), importFile, exportAll };
 }

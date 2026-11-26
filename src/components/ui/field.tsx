@@ -4,8 +4,9 @@ import { Switch as SwitchPrimitive } from 'radix-ui';
 import { useId, type ComponentProps, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
+// text-base on touch screens stops iOS zooming into focused fields.
 const control =
-  'w-full rounded-md border border-border-strong/70 bg-surface px-3 text-sm text-foreground placeholder:text-muted-foreground/80 hover:border-border-strong focus-visible:border-primary focus-visible:outline-offset-0 disabled:opacity-50 aria-invalid:border-danger';
+  'w-full min-w-0 rounded-md border border-border-strong/60 bg-surface px-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-0 disabled:opacity-50 aria-invalid:border-danger pointer-coarse:text-base';
 
 export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input className={cn(control, 'h-9', className)} {...props} />;
@@ -13,12 +14,15 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
 
 export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
   return (
-    <textarea className={cn(control, 'min-h-24 py-2 leading-relaxed', className)} {...props} />
+    <textarea
+      className={cn(control, 'min-h-24 resize-y py-2 leading-relaxed', className)}
+      {...props}
+    />
   );
 }
 
 export function Select({ className, ...props }: ComponentProps<'select'>) {
-  return <select className={cn(control, 'h-9 pr-8', className)} {...props} />;
+  return <select className={cn(control, 'control h-9 pr-7', className)} {...props} />;
 }
 
 /** Label, control and error message wired together for assistive technology. */
@@ -89,7 +93,10 @@ export function Segmented<T extends string | number>({
   options,
   onChange,
   className,
+  stretch,
 }: {
+  /** Share the full width equally between the options. */
+  stretch?: boolean;
   label: string;
   value: T;
   options: { value: T; label: ReactNode; title?: string }[];
@@ -100,12 +107,17 @@ export function Segmented<T extends string | number>({
   return (
     <fieldset className={cn('min-w-0', className)}>
       <legend className="sr-only">{label}</legend>
-      <div className="border-border bg-muted inline-flex max-w-full gap-0.5 rounded-md border p-0.5">
+      <div
+        className={cn(
+          'bg-muted inline-flex max-w-full gap-0.5 rounded-md p-0.5',
+          stretch && 'flex w-full [&>label]:flex-1',
+        )}
+      >
         {options.map((option) => (
           <label
             key={option.value}
             title={option.title}
-            className="has-checked:bg-surface has-focus-visible:outline-primary text-muted-foreground has-checked:text-foreground flex min-h-7 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-3 text-[13px] font-medium has-checked:shadow-xs has-focus-visible:outline-2 [&_svg]:size-4"
+            className="has-checked:bg-raised has-focus-visible:outline-primary text-muted-foreground hover:text-foreground has-checked:text-foreground flex min-h-7 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-3 text-[13px] font-medium transition-colors has-checked:shadow-xs has-focus-visible:outline-2 pointer-coarse:min-h-9 [&_svg]:size-4"
           >
             <input
               type="radio"

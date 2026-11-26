@@ -3,20 +3,39 @@
 import {
   ArrowLeft,
   Check,
+  Copy,
+  Download,
   Eye,
+  FileDown,
+  History,
+  Keyboard,
+  Languages,
   LayoutTemplate,
   LoaderCircle,
+  Monitor,
+  Moon,
+  MoreHorizontal,
+  PanelRight,
+  PanelRightClose,
   Redo2,
+  Search,
   Sparkles,
+  Sun,
   TriangleAlert,
   Undo2,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { LanguageMenu, ThemeMenu } from '@/components/layout/preferences';
+import { useLocale, useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+import { LOCALE_NAMES, useSwitchLocale } from '@/components/layout/preferences';
 import { Button } from '@/components/ui/button';
+import { Menu, type MenuItem } from '@/components/ui/overlays';
 import { useAssistant } from '@/features/ai-assistant/store';
-import { DownloadButton } from '@/features/pdf-export/export-button';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
+import { routing } from '@/i18n/routing';
+import { createBackup } from '@/lib/storage/backup';
+import { saveCopy } from '@/lib/storage/db';
+import { setTheme, useTheme } from '@/lib/theme';
+import { downloadTextFile, safeFileName } from '@/lib/utils';
 import { useSaveStatus } from '@/stores/autosave';
 import { actions, useEditor } from '@/stores/editor-store';
 import type { Resume } from '@/types/resume';
@@ -24,6 +43,18 @@ import type { Resume } from '@/types/resume';
 function SaveIndicator({ onRetry }: { onRetry: () => void }) {
   const t = useTranslations('editor.save');
   const status = useSaveStatus((s) => s.status);
+  if (status === 'conflict' || status === 'deleted') {
+    return (
+      <span
+        data-testid="save-status"
+        data-status={status}
+        className="text-danger flex items-center gap-1.5 text-xs font-medium"
+      >
+        <TriangleAlert aria-hidden className="size-3.5" />
+        {t('blocked')}
+      </span>
+    );
+  }
   if (status === 'error') {
     return (
       <button
@@ -50,54 +81,123 @@ function SaveIndicator({ onRetry }: { onRetry: () => void }) {
       ) : (
         <Check aria-hidden className="size-3.5" />
       )}
-      <span className="max-sm:sr-only">{t(busy ? 'saving' : 'saved')}</span>
+      <span className="max-md:sr-only">{t(busy ? 'saving' : 'saved')}</span>
     </span>
   );
 }
 
 export function Toolbar({
   resume,
+  desktop,
+  previewShown,
+  onTogglePreview,
   onRetrySave,
   onChangeTemplate,
-  onPreview,
-  onDownload,
-  downloading,
+  onFullPreview,
+  onSearch,
+  onShortcuts,
+  onHistory,
+  onExport,
 }: {
   resume: Resume;
+  desktop: boolean;
+  previewShown: boolean;
+  onTogglePreview: () => void;
   onRetrySave: () => void;
   onChangeTemplate: () => void;
-  onPreview: () => void;
-  onDownload: () => void;
-  downloading: boolean;
+  onFullPreview: () => void;
+  onSearch: () => void;
+  onShortcuts: () => void;
+  onHistory: () => void;
+  onExport: () => void;
 }) {
   const t = useTranslations('editor');
+  const theme = useTranslations('theme');
+  const exportText = useTranslations('export');
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
   const { undo, redo } = useEditor.getState();
   const toggleAssistant = useAssistant((s) => s.toggle);
   const assistantOpen = useAssistant((s) => s.open);
+  const currentTheme = useTheme();
+  const locale = useLocale();
+  const switchLocale = useSwitchLocale();
+  const router = useRouter();
+
+  const duplicate = async () => {
+    onRetrySave();
+    // Copy what is on screen, which may be newer than what is stored.
+    const current = useEditor.getState().resume!;
+    const copy = await saveCopy(current, t('copyName', { title: current.title })).catch(() => null);
+    if (!copy) return toast.error(t('duplicateFailed'));
+    router.push(`/builder/${copy.id}`);
+  };
+
+  const menu: MenuItem[] = [
+    { label: t('search.open'), icon: <Search />, onSelect: onSearch },
+    ...(desktop
+      ? []
+      : [
+          { label: t('changeTemplate'), icon: <LayoutTemplate />, onSelect: onChangeTemplate },
+          { label: t('previewAction'), icon: <Eye />, onSelect: onFullPreview },
+        ]),
+    { label: t('duplicate'), icon: <Copy />, onSelect: () => void duplicate(), separated: true },
+    { label: t('history'), icon: <History />, onSelect: onHistory },
+    {
+      label: t('backup'),
+      icon: <FileDown />,
+      onSelect: () =>
+        downloadTextFile(`${safeFileName(resume.title)}.json`, createBackup([resume])),
+    },
+    ...routing.locales.map((code, index) => ({
+      label: LOCALE_NAMES[code],
+      icon: <Languages />,
+      checked: code === locale,
+      separated: index === 0,
+      onSelect: () => switchLocale(code),
+    })),
+    ...(['light', 'dark', 'system'] as const).map((value, index) => ({
+      label: theme(value),
+      icon: value === 'light' ? <Sun /> : value === 'dark' ? <Moon /> : <Monitor />,
+      checked: value === currentTheme,
+      separated: index === 0,
+      onSelect: () => setTheme(value),
+    })),
+    ...(desktop
+      ? [
+          {
+            label: t('shortcuts.title'),
+            icon: <Keyboard />,
+            separated: true,
+            shortcut: '?',
+            onSelect: onShortcuts,
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <header className="border-border bg-surface flex flex-wrap items-center gap-x-2 gap-y-1 border-b px-2 py-1.5 sm:px-3">
-      <Button asChild variant="ghost" size="icon">
+    <header className="border-border bg-surface flex h-13 shrink-0 items-center gap-1 border-b px-2 sm:gap-2 sm:px-3">
+      <h1 className="sr-only">{t('heading', { title: resume.title })}</h1>
+      <Button asChild variant="ghost" size="icon-sm">
         <Link href="/resumes" aria-label={t('back')}>
           <ArrowLeft />
         </Link>
       </Button>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div data-resume-history className="flex min-w-0 flex-1 items-center gap-2">
         <input
           aria-label={t('titleLabel')}
           maxLength={120}
           value={resume.title}
           onChange={(e) => actions.rename(e.target.value)}
-          className="hover:border-border focus:border-primary h-8 w-full max-w-72 min-w-0 rounded-md border border-transparent bg-transparent px-2 text-sm font-semibold"
+          className="hover:border-border focus:border-primary h-8 w-full max-w-64 min-w-0 truncate rounded-md border border-transparent bg-transparent px-2 text-sm font-semibold pointer-coarse:text-base"
         />
         <SaveIndicator onRetry={onRetrySave} />
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           disabled={!canUndo}
           aria-label={t('undo')}
           title={`${t('undo')} (Ctrl/⌘ Z)`}
@@ -107,7 +207,7 @@ export function Toolbar({
         </Button>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           disabled={!canRedo}
           aria-label={t('redo')}
           title={`${t('redo')} (Ctrl/⌘ Shift Z)`}
@@ -115,19 +215,26 @@ export function Toolbar({
         >
           <Redo2 />
         </Button>
-        <span aria-hidden className="bg-border mx-1 hidden h-5 w-px sm:block" />
+        {desktop && (
+          <>
+            <span aria-hidden className="bg-border mx-1 h-5 w-px" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="max-xl:size-8 max-xl:px-0"
+              aria-label={t('changeTemplate')}
+              title={t('changeTemplate')}
+              onClick={onChangeTemplate}
+            >
+              <LayoutTemplate />
+              <span className="max-xl:sr-only">{t('templateShort')}</span>
+            </Button>
+          </>
+        )}
         <Button
           variant="ghost"
-          className="max-xl:size-9 max-xl:px-0 max-sm:hidden"
-          aria-label={t('changeTemplate')}
-          onClick={onChangeTemplate}
-        >
-          <LayoutTemplate />
-          <span className="max-xl:sr-only">{t('changeTemplate')}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          className="max-md:size-9 max-md:px-0"
+          size="sm"
+          className="aria-expanded:bg-primary-soft aria-expanded:text-primary max-md:size-8 max-md:px-0"
           aria-expanded={assistantOpen}
           aria-label={t('assistant')}
           onClick={toggleAssistant}
@@ -135,24 +242,45 @@ export function Toolbar({
           <Sparkles />
           <span className="max-md:sr-only">{t('assistant')}</span>
         </Button>
-        <Button
-          variant="ghost"
-          className="max-xl:size-9 max-xl:px-0 max-sm:hidden"
-          aria-label={t('previewAction')}
-          onClick={onPreview}
-        >
-          <Eye />
-          <span className="max-xl:sr-only">{t('previewAction')}</span>
-        </Button>
-        <div className="hidden items-center lg:flex">
-          <LanguageMenu />
-          <ThemeMenu />
-        </div>
-        <DownloadButton
-          busy={downloading}
-          onClick={onDownload}
-          className="max-sm:size-9 max-sm:px-0 max-sm:[&>span]:sr-only"
+        {desktop && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('search.open')}
+              title={`${t('search.open')} (Ctrl/⌘ K)`}
+              onClick={onSearch}
+            >
+              <Search />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t(previewShown ? 'preview.hide' : 'preview.show')}
+              title={t(previewShown ? 'preview.hide' : 'preview.show')}
+              onClick={onTogglePreview}
+            >
+              {previewShown ? <PanelRightClose /> : <PanelRight />}
+            </Button>
+          </>
+        )}
+        <Menu
+          trigger={
+            <Button variant="ghost" size="icon-sm" aria-label={t('more')}>
+              <MoreHorizontal />
+            </Button>
+          }
+          items={menu}
         />
+        <Button
+          variant="primary"
+          size="sm"
+          className="ml-1 max-sm:size-8 max-sm:px-0"
+          onClick={onExport}
+        >
+          <Download />
+          <span className="max-sm:sr-only">{exportText('export')}</span>
+        </Button>
       </div>
     </header>
   );

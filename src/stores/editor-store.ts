@@ -122,6 +122,19 @@ export const actions = {
         }),
       `${key}:${id}:${Object.keys(patch).join()}`,
     ),
+  /** Copies an entry and places the copy straight after it. */
+  duplicateEntry: (key: ListSectionKey, id: string) => {
+    const copy = createId();
+    apply((r) => {
+      const list: ListEntry[] = r.data[key];
+      const index = list.findIndex((e) => e.id === id);
+      if (index < 0 || list.length >= 60) return r;
+      const next = [...list];
+      next.splice(index + 1, 0, { ...list[index]!, id: copy });
+      return withData(r, { [key]: next });
+    });
+    return copy;
+  },
   removeEntry: (key: ListSectionKey, id: string) =>
     apply((r) => withData(r, { [key]: r.data[key].filter((e) => e.id !== id) })),
   moveEntry: (key: ListSectionKey, from: number, to: number) =>

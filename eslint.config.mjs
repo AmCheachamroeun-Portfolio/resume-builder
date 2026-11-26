@@ -14,5 +14,6 @@ export default defineConfig([
     'test-results/**',
     'playwright-report/**',
     'test-results-pdf/**',
+    'test-results-docx/**',
   ]),
 ]);

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { sampleResume } from '@/constants/sample-resume';
 import { SECTION_FIELDS } from '@/constants/sections';
 import { analyzeResume, extractKeywords } from '@/lib/ats/analyze';
+import { termMatcher } from '@/lib/ats/keywords';
 import { createResume } from '@/lib/resume-factory';
 import { ASSISTANT_TASKS } from '@/features/ai-assistant/store';
 import { TEMPLATE_CATEGORIES } from '@/features/resume-templates/types';
@@ -21,6 +22,47 @@ describe('compatibility check', () => {
   it('flags decorative layouts', () => {
     const report = analyzeResume(sampleResume('creative-portfolio'));
     expect(report.checks.find((c) => c.id === 'columns')!.status).toBe('fail');
+  });
+
+  it('matches common variants and phrases, but not different words', () => {
+    const has = termMatcher('Managed a team. Built REST APIs in JS with React.js and CI/CD.');
+    for (const term of ['management', 'rest api', 'javascript', 'react', 'ci/cd', 'manages']) {
+      expect(has(term), term).toBe(true);
+    }
+    for (const term of ['java', 'react native', 'typescript', 'manila']) {
+      expect(has(term), term).toBe(false);
+    }
+    expect(extractKeywords('Project management and machine learning')).toEqual([
+      'machine learning',
+      'project management',
+    ]);
+  });
+
+  it('splits Khmer job adverts into words', () => {
+    const job = 'យើងត្រូវការអ្នកអភិវឌ្ឍន៍កម្មវិធី និងគ្រប់គ្រងគម្រោង';
+    const words = extractKeywords(job);
+    expect(words).toEqual(expect.arrayContaining(['កម្មវិធី', 'គម្រោង']));
+    expect(words).not.toContain('និង');
+    expect(termMatcher('ខ្ញុំសរសេរកម្មវិធី')('កម្មវិធី')).toBe(true);
+    expect(termMatcher('ខ្ញុំសរសេរកម្មវិធី')('គម្រោង')).toBe(false);
+  });
+
+  it('points each problem at a place to fix it and flags text that may not extract', () => {
+    const resume = structuredClone(sampleResume('ats-essential'));
+    resume.data.personal.email = 'wrong';
+    resume.data.experience[1]!.start = '';
+    resume.data.personal.headline = '🚀 អ្នកអភិវឌ្ឍន៍';
+    const find = (id: string) => analyzeResume(resume).checks.find((c) => c.id === id)!;
+    expect(find('email').target).toEqual({ section: 'personal', focus: 'personal.email' });
+    expect(find('dates').target).toEqual({
+      section: 'experience',
+      focus: resume.data.experience[1]!.id,
+    });
+    expect(find('symbols').status).toBe('warn');
+    expect(find('khmer').status).toBe('warn');
+    expect(analyzeResume(sampleResume('ats-essential')).checks.map((c) => c.id)).not.toContain(
+      'khmer',
+    );
   });
 
   it('matches job keywords without inventing matches', () => {

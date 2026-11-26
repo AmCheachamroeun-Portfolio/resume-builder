@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { TEMPLATES } from '@/features/resume-templates/registry';
+import { importedContentSchema } from '@/lib/import/types';
+import { LETTER_LIMITS, LETTER_TONES } from '@/types/cover-letter';
 
 /* Shared contract between the browser and the route handlers. */
 
@@ -16,6 +18,7 @@ export const IMPROVE_MODES = [
   'verbs',
   'clarity',
   'repetition',
+  'bullets',
 ] as const;
 export type ImproveMode = (typeof IMPROVE_MODES)[number];
 
@@ -62,6 +65,7 @@ export const AI_REQUESTS = {
     style: z.enum(['any', 'professional', 'modern', 'minimalist', 'creative']),
     ats: z.boolean(),
     photo: z.boolean(),
+    requirements: z.string().trim().max(4000).optional(),
   }),
   'generate-summary': z.object({ language, context, targetRole: line, goals: block }),
   'improve-experience': z.object({
@@ -81,8 +85,27 @@ export const AI_REQUESTS = {
     language,
     context,
     jobDescription: z.string().trim().min(40).max(8000),
+    /** The pieces of writing a rewrite may be proposed for. */
+    fields: z
+      .array(
+        z.object({
+          id: z.string().min(1).max(8),
+          label: line,
+          text: z.string().trim().min(1).max(4000),
+        }),
+      )
+      .max(20),
   }),
   'generate-draft': z.object({ language, answers: draftAnswersSchema }),
+  'cover-letter': z.object({
+    language,
+    context,
+    tone: z.enum(LETTER_TONES),
+    company: line.min(1),
+    jobTitle: line.min(1),
+    jobDescription: z.string().trim().max(LETTER_LIMITS.jobDescription),
+  }),
+  'parse-resume': z.object({ language, text: z.string().trim().min(40).max(24_000) }),
 };
 
 export type AiAction = keyof typeof AI_REQUESTS;
@@ -125,10 +148,16 @@ export const AI_RESPONSES = {
       .max(14),
   }),
   'tailor-resume': z.object({
-    keywords: texts,
-    matching: texts,
-    missing: texts,
-    suggestions: texts,
+    requirements: z
+      .array(
+        z.object({
+          requirement: text.min(1),
+          met: z.enum(['yes', 'partly', 'no']),
+          evidence: text,
+        }),
+      )
+      .max(15),
+    suggestions: z.array(z.object({ field: text, text: text.min(1), reason: text })).max(8),
     emphasise: texts,
   }),
   'generate-draft': z.object({
@@ -171,6 +200,8 @@ export const AI_RESPONSES = {
       )
       .max(10),
   }),
+  'cover-letter': z.object({ body: text.min(1) }),
+  'parse-resume': importedContentSchema,
 };
 
 export type AiResponse<A extends AiAction> = z.infer<(typeof AI_RESPONSES)[A]>;
@@ -178,6 +209,9 @@ export type Draft = AiResponse<'generate-draft'> & { removed?: string[] };
 
 export type AiErrorCode =
   | 'not-configured'
+  | 'invalid-key'
+  | 'model-unavailable'
+  | 'cancelled'
   | 'invalid-request'
   | 'forbidden'
   | 'rate-limited'

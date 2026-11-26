@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Resume } from '@/types/resume';
@@ -98,6 +99,24 @@ export function ScaledPages({
           </figure>
         )}
       />
+    </div>
+  );
+}
+
+/** All pages at the width of the container, never larger than real size. */
+export function FittedPages({ resume }: { resume: Resume }) {
+  const t = useTranslations('editor.preview');
+  const [ref, width] = useWidth<HTMLDivElement>();
+  const scale = Math.min(1, width / PAGE_DIMENSIONS[resume.design.pageSize].width);
+  return (
+    <div ref={ref} className="w-full">
+      {width > 0 && (
+        <ScaledPages
+          resume={resume}
+          scale={scale}
+          pageLabel={(page, total) => t('pageOf', { page, total })}
+        />
+      )}
     </div>
   );
 }

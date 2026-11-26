@@ -1,18 +1,14 @@
 import { cn } from '@/lib/utils';
 
-/** A sheet framed by crop marks, with one line of type set in the accent. */
+/** A draft sheet with one turned corner: the last line, in the accent, is yours to write. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={cn('size-7', className)} aria-hidden fill="none">
-      <path
-        d="M2 8V2h6M24 2h6v6M30 24v6h-6M8 30H2v-6"
-        stroke="currentColor"
-        strokeWidth="2"
-        opacity="0.45"
-      />
-      <path d="M8 6h11l5 5v15H8z" fill="var(--primary)" />
-      <path d="M19 6v5h5z" fill="var(--primary-foreground)" opacity="0.55" />
-      <path d="M12 15h8M12 19h8M12 23h4.5" stroke="var(--primary-foreground)" strokeWidth="2" />
+    <svg viewBox="0 0 24 24" className={cn('size-6', className)} aria-hidden>
+      <rect width="24" height="24" rx="6" fill="var(--foreground)" />
+      <path d="M6.5 5h7.2L17.5 8.8V19h-11z" fill="var(--background)" />
+      <path d="M13.7 5v3.8h3.8z" fill="var(--muted-foreground)" />
+      <path d="M9 11.2h6M9 13.8h6" stroke="var(--foreground)" strokeWidth="1.3" />
+      <path d="M9 16.4h3.5" stroke="var(--primary)" strokeWidth="1.6" />
     </svg>
   );
 }
@@ -21,9 +17,8 @@ export function Logo({ compact }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2">
       <LogoMark />
-      <span className={cn('text-[17px] font-semibold tracking-tight', compact && 'sr-only')}>
-        Resume<span className="display">Craft</span>
-        <span className="text-primary ml-1 text-xs font-bold">AI</span>
+      <span className={cn('text-[15px] font-semibold tracking-[-0.015em]', compact && 'sr-only')}>
+        ResumeCraft
       </span>
     </span>
   );

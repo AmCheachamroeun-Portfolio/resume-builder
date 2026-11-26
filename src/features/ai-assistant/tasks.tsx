@@ -108,7 +108,12 @@ export function ChatTask({
           </li>
         ))}
       </ol>
-      <AiStatusLine loading={request.loading} error={request.error} onRetry={() => void retry()} />
+      <AiStatusLine
+        loading={request.loading}
+        error={request.error}
+        onRetry={() => void retry()}
+        onCancel={request.reset}
+      />
       <form
         className="space-y-2"
         onSubmit={(e) => {
@@ -198,6 +203,7 @@ export function SummaryTask({ resume }: { resume: Resume }) {
         loading={request.loading}
         error={request.error}
         onRetry={() => void request.retry()}
+        onCancel={request.reset}
       />
       {request.data?.options
         .filter((o) => !dismissed.includes(o.style))
@@ -308,6 +314,7 @@ export function ImproveTask({ resume }: { resume: Resume }) {
         loading={request.loading}
         error={request.error}
         onRetry={() => void request.retry()}
+        onCancel={request.reset}
       />
       {request.data && selected && source === key(selected) && (
         <>
@@ -376,6 +383,7 @@ export function SkillsTask({ resume }: { resume: Resume }) {
         loading={request.loading}
         error={request.error}
         onRetry={() => void request.retry()}
+        onCancel={request.reset}
       />
       {request.data && offered.length === 0 && <Note>{t('nothing')}</Note>}
       {offered.length > 0 && (
@@ -427,59 +435,6 @@ export function SkillsTask({ resume }: { resume: Resume }) {
   );
 }
 
-// ---------- Job description ----------
-export function TailorTask({
-  resume,
-  job,
-  setJob,
-}: {
-  resume: Resume;
-  job: string;
-  setJob: (v: string) => void;
-}) {
-  const t = useTranslations('ai.tailor');
-  const request = useAiRequest('tailor-resume');
-  const context = resumeContext(resume);
-  return (
-    <div className="space-y-3">
-      <Note>{t('intro')}</Note>
-      <Field label={t('job')} hint={t('jobHint')}>
-        {(p) => (
-          <Textarea
-            {...p}
-            rows={7}
-            maxLength={8000}
-            value={job}
-            onChange={(e) => setJob(e.target.value)}
-          />
-        )}
-      </Field>
-      <Run
-        loading={request.loading}
-        disabled={!context || job.trim().length < 40}
-        onClick={() =>
-          void request.run({ language: resume.language, context, jobDescription: job })
-        }
-      >
-        {t('run')}
-      </Run>
-      <AiStatusLine
-        loading={request.loading}
-        error={request.error}
-        onRetry={() => void request.retry()}
-      />
-      {request.data && (
-        <div className="space-y-4">
-          {(['keywords', 'matching', 'missing', 'suggestions', 'emphasise'] as const).map((k) => (
-            <Bullets key={k} title={t(k)} items={request.data![k]} />
-          ))}
-          <p className="bg-warning-soft text-warning rounded-md p-3 text-xs">{t('honesty')}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ---------- Review ----------
 export function ReviewResult({ resume }: { resume: Resume }) {
   const t = useTranslations('ai.review');
@@ -501,6 +456,7 @@ export function ReviewResult({ resume }: { resume: Resume }) {
         loading={request.loading}
         error={request.error as AiErrorCode | null}
         onRetry={() => void request.retry()}
+        onCancel={request.reset}
       />
       {request.data && (
         <>

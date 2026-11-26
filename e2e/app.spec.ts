@@ -23,7 +23,9 @@ test('creates a resume by hand and keeps it after a reload', async ({ page }) =>
   await page.getByRole('button', { name: /^Add to / }).click();
   await page.getByLabel('Job title').fill('Support Engineer');
   await page.getByLabel('Company').fill('Sample Company');
-  await page.getByLabel('Responsibilities').fill('- Answered **customer** questions');
+  await page
+    .getByRole('textbox', { name: 'Responsibilities' })
+    .fill('- Answered **customer** questions');
   await expect(preview(page).first()).toContainText('Answered customer questions');
 
   await saved(page);
@@ -74,6 +76,7 @@ test('reorders and hides sections, by button and by keyboard', async ({ page }) 
   const before = await sectionRows(page);
 
   const first = page.locator(`[data-section-row="${before[0]}"]`);
+  await first.hover();
   await first.getByRole('button', { name: /^Move / }).click();
   await page.getByRole('menuitem', { name: 'Move down' }).click();
   await expect.poll(() => sectionRows(page)).toEqual([before[1], before[0], ...before.slice(2)]);
@@ -92,10 +95,9 @@ test('reorders and hides sections, by button and by keyboard', async ({ page }) 
 
   const pages = preview(page);
   await expect(pages.first()).toContainText('Sample Institute');
-  await page
-    .locator('[data-section-row="education"]')
-    .getByRole('button', { name: /^Hide / })
-    .click();
+  const education = page.locator('[data-section-row="education"]');
+  await education.hover();
+  await education.getByRole('button', { name: /^Hide / }).click();
   await expect(pages.filter({ hasText: 'Sample Institute' })).toHaveCount(0);
   await saved(page);
   await page.reload();
@@ -114,7 +116,7 @@ test('undoes typing with the keyboard', async ({ page }) => {
 
 test('changes the design of one resume without touching the app theme', async ({ page }) => {
   await createExample(page);
-  await page.getByRole('navigation', { name: 'Sections' }).getByText('Design').click();
+  await page.locator('label', { hasText: /^Design$/ }).click();
   await page.locator('label', { hasText: 'Letter' }).first().click();
   await expect
     .poll(
@@ -148,7 +150,7 @@ test('renames, duplicates, searches, exports, deletes and imports', async ({ pag
   await page.getByRole('searchbox').fill('');
 
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export all' }).click();
+  await page.getByRole('button', { name: 'Back up all' }).click();
   const file = await (await download).path();
   const backup = JSON.parse(await readFile(file, 'utf8'));
   expect(backup.app).toBe('resumecraft');
@@ -191,8 +193,44 @@ test('deletes all local data from settings', async ({ page }) => {
 test('opens the print window with only the resume in it', async ({ page }) => {
   await stubPrint(page);
   await createExample(page);
-  await page.getByRole('button', { name: 'Download PDF' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('File name').fill('Maya CV: 2026');
+  await dialog.getByText('US Letter', { exact: true }).click();
+  await expect(dialog.getByText('Used for this download only')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Open print window' }).click();
   await expect.poll(() => page.evaluate(() => window.__printed ?? 0)).toBe(1);
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveTitle('Maya-CV-2026');
+  await expect(page.locator('#rc-print-root > .rc-page')).toHaveCount(1);
+  // The paper choice was for this download only.
+  await page.getByText('Design', { exact: true }).first().click();
+  await expect(page.getByRole('radio', { name: 'A4' })).toBeChecked();
+});
+
+test('downloads a backup from the export dialog', async ({ page }) => {
+  await createExample(page);
+  await page.keyboard.press('ControlOrMeta+p');
+  const dialog = page.getByRole('dialog');
+  await dialog.getByText('Backup', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download file' }).click();
+  expect((await download).suggestedFilename()).toBe('Example-resume.json');
+});
+
+test('downloads an editable Word file from the export dialog', async ({ page }) => {
+  await createExample(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByText('Word', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Download file' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('Example-resume.docx');
+  // A .docx file is a zip archive.
+  const bytes = await readFile((await file.path())!);
+  expect(bytes.subarray(0, 2).toString()).toBe('PK');
+  expect(bytes.length).toBeGreaterThan(3000);
 });
 
 test('adds a photo and refuses unsupported files', async ({ page }) => {
@@ -249,12 +287,13 @@ test('translates the interface to Khmer but never the resume', async ({ page }) 
   const id = page.url().split('/').pop()!;
   await page.goto(`/km/builder/${id}`);
   await expect(page.locator('html')).toHaveAttribute('lang', 'km');
-  await expect(page.getByRole('button', { name: 'ទាញយក PDF' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'នាំចេញ', exact: true })).toBeVisible();
   await expect(preview(page).first()).toContainText('Maya Sovann');
   await expect(preview(page).first()).toContainText('Frontend Developer');
 });
 
-for (const path of ['', '/templates', '/builder', '/resumes', '/settings', '/builder/ai']) {
+const PAGES = ['', '/templates', '/builder', '/resumes', '/settings', '/builder/ai'];
+for (const path of [...PAGES, '/letters', '/import']) {
   test(`has no console errors or sideways scrolling on a phone: ${path || '/'}`, async ({
     page,
   }) => {
@@ -301,4 +340,88 @@ test('edits on a phone through the Sections, Edit, Design and Preview views', as
     () => document.documentElement.scrollWidth - window.innerWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('finds an entry with search and jumps to it', async ({ page }) => {
+  await createExample(page);
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox', { name: 'Search this resume' }).fill('Riverbank');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('textbox', { name: 'Company' })).toHaveValue('Riverbank Digital');
+});
+
+test('leaves a field’s own undo alone outside the resume forms', async ({ page }) => {
+  await createExample(page);
+  await name(page).fill('Changed Name');
+  await page.getByRole('button', { name: 'Assistant' }).click();
+  await page.getByLabel('What do you want help with?').selectOption('ats');
+  const job = page.getByRole('textbox').last();
+  await job.pressSequentially('hello');
+  await page.keyboard.press('Control+z');
+  await expect(job).not.toHaveValue('hello');
+  await expect(page.getByLabel('Resume name')).toHaveValue('Example resume');
+  await page.getByRole('button', { name: 'Close assistant' }).click();
+  await expect(name(page)).toHaveValue('Changed Name');
+});
+
+test('writing help appears under the field and explains when AI is unavailable', async ({
+  page,
+}) => {
+  await createExample(page);
+  await page.locator('[data-section-row="summary"] button', { hasText: 'Summary' }).click();
+  await page.getByRole('button', { name: 'Writing help for Professional summary' }).click();
+  await page.getByRole('menuitem', { name: 'Make concise' }).click();
+  await expect(page.getByText('AI features are not available')).toBeVisible();
+});
+
+test('a second tab cannot silently overwrite or revive a resume', async ({ page, context }) => {
+  await createExample(page);
+  await saved(page);
+  const url = page.url();
+  const other = await context.newPage();
+  await other.goto(url);
+  await expect(preview(other).first()).toBeVisible();
+
+  await page.getByLabel('Resume name').fill('Changed in the first tab');
+  await saved(page);
+  await other.getByLabel('Resume name').fill('Changed in the second tab');
+  const banner = other.getByRole('alert').filter({ hasText: 'changed somewhere else' });
+  await expect(banner).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel('Resume name')).toHaveValue('Changed in the first tab');
+
+  await banner.getByRole('button', { name: 'Save mine as a copy' }).click();
+  await expect(other.getByLabel('Resume name')).toHaveValue('Changed in the second tab (copy)');
+  expect(other.url()).not.toBe(url);
+
+  await other.goto('/en/resumes');
+  await expect(other.getByTestId('resume-card')).toHaveCount(2);
+  await other.evaluate(
+    (id) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('resumecraft');
+        open.onsuccess = () => {
+          const tx = open.result.transaction('resumes', 'readwrite');
+          tx.objectStore('resumes').delete(id);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    url.split('/').pop()!,
+  );
+  await page.getByLabel('Resume name').fill('Typed after deletion');
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'was deleted somewhere else' }),
+  ).toBeVisible();
+  await other.reload();
+  await expect(other.getByTestId('resume-card')).toHaveCount(1);
+});
+
+test('a compatibility finding leads to the field that needs it', async ({ page }) => {
+  await createExample(page);
+  await page.getByLabel('Phone').first().fill('');
+  await page.getByRole('button', { name: 'Assistant' }).click();
+  await page.getByLabel('What do you want help with?').selectOption('ats');
+  await page.getByRole('button', { name: 'Go to it: Phone' }).click();
+  await expect(page.getByLabel('Phone').first()).toBeFocused();
 });

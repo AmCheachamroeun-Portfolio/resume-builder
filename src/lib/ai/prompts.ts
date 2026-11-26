@@ -12,7 +12,7 @@ Rules that always apply:
 
 /** Neutralises attempts to close the data block from inside it. */
 export function data(label: string, value: string) {
-  return `<data name="${label}">\n${value.replace(/<\/?\s*data\b/gi, '‹data')}\n</data>`;
+  return `<data name="${label.replace(/["<>\n]/g, ' ')}">\n${value.replace(/<\/?\s*data\b/gi, '‹data')}\n</data>`;
 }
 
 const reply = (language: 'en' | 'km') =>
@@ -53,6 +53,7 @@ export function buildPrompt<A extends AiAction>(action: A, input: AiRequest<A>):
         'applicant',
         `Target role: ${r.targetRole}\nIndustry: ${r.industry}\nLevel: ${r.level}\nPreferred style: ${r.style}`,
       ),
+      r.requirements ? data('job requirements', r.requirements) : '',
     ],
     'generate-summary': (r) => [
       'Write three professional summaries of 40 to 70 words each: one "concise", one "achievement" (leads with the strongest real accomplishment) and one "narrative". No first-person pronouns.',
@@ -71,6 +72,8 @@ export function buildPrompt<A extends AiAction>(action: A, input: AiRequest<A>):
         verbs: 'Start each bullet with a precise action verb that matches what actually happened.',
         clarity: 'Make each point clearer and easier to scan.',
         repetition: 'Remove repeated ideas and repeated words.',
+        bullets:
+          'Turn the text into short bullet points, one fact or responsibility per bullet, each starting with an action verb. Use only what the text says; if it holds a single fact, return a single bullet.',
       }[r.mode],
       'Return the rewritten text, plus a short list of what you changed. Do not add any number or outcome that is not in the original.',
       MARKUP,
@@ -93,17 +96,44 @@ export function buildPrompt<A extends AiAction>(action: A, input: AiRequest<A>):
       data('resume', r.context),
     ],
     'tailor-resume': (r) => [
-      'Compare the resume with the job description. List: relevant keywords from the job; qualifications the resume already matches; requirements the resume does not show; content improvements using existing facts; and existing experience worth emphasising.',
-      'For missing requirements, never suggest claiming them; suggest only mentioning them if true.',
+      'Compare the resume with the job description.',
+      '"requirements": up to 15 things the job asks for. "met" is "yes", "partly" or "no". "evidence" quotes the exact words in the resume that show it, or is an empty string.',
+      '"suggestions": up to 6 rewrites of the numbered fields that make existing, relevant experience clearer for this job. "field" is the field id. Never add a skill, tool, duty, number or result that the original field and resume do not contain. Keep bullet points as bullet points. Give the reason in one sentence. Leave out fields that need no change.',
+      '"emphasise": existing experience worth making more prominent.',
+      'For requirements the resume does not show, never suggest claiming them.',
       reply(r.language),
       data('job description', r.jobDescription),
       data('resume', r.context),
+      ...r.fields.map((f) => data(`field ${f.id} (${f.label})`, f.text)),
     ],
     'generate-draft': (r) => [
       'Turn the answers into a structured resume draft. Include only employers, schools, skills, projects, certifications and languages that appear in the answers, spelled as written. Leave unknown fields as empty strings. Dates are "YYYY-MM" or "YYYY", only when given.',
       MARKUP,
       reply(r.language),
       ...Object.entries(r.answers).map(([key, value]) => data(key, value)),
+    ],
+    'cover-letter': (r) => [
+      `Write a cover letter of 180 to 280 words in three or four short paragraphs separated by blank lines. Tone: ${
+        {
+          professional: 'formal and measured',
+          warm: 'friendly and personable, still professional',
+          direct: 'brief and to the point',
+        }[r.tone]
+      }.`,
+      'Begin with a greeting to the hiring team and end with a closing phrase. Do not add a name, address, date or contact details, and never write placeholders in square brackets.',
+      'Mention only experience, skills and results that the resume states. Never claim a requirement from the job description that the resume does not show, and give no number the resume does not give.',
+      reply(r.language),
+      data('job title', r.jobTitle),
+      data('company', r.company),
+      r.jobDescription ? data('job description', r.jobDescription) : '',
+      data('resume', r.context),
+    ],
+    'parse-resume': (r) => [
+      'Sort the text of an existing resume into fields. Copy wording exactly as written: do not rewrite, translate, summarise, correct or add anything.',
+      'Leave a field as an empty string, or a list empty, when the text does not give it. Dates are "YYYY-MM" or "YYYY". Put anything without a matching field in "other" under its original heading.',
+      'Contact details and the writer’s name were replaced with placeholders such as [email]. Leave placeholders out.',
+      MARKUP,
+      data('resume text', r.text),
     ],
   };
   return (builders[action] as (r: AiRequest<A>) => string[])(input).filter(Boolean).join('\n\n');

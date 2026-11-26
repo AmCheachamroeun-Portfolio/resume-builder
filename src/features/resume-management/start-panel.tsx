@@ -13,7 +13,7 @@ import { DEFAULT_TEMPLATE_ID, getTemplate, TEMPLATES } from '@/features/resume-t
 import { Link } from '@/i18n/navigation';
 import { listResumes } from '@/lib/storage/db';
 import type { ContentLanguage } from '@/types/resume';
-import { filterResumes } from './resume-library';
+import { filterResumes } from './filter-resumes';
 import { useCreateResume } from './use-create-resume';
 
 export function StartPanel() {
@@ -34,7 +34,7 @@ export function StartPanel() {
 
   return (
     <div className="container-page py-10">
-      <h1 className="display text-3xl sm:text-4xl">{t('title')}</h1>
+      <h1 className="title-page">{t('title')}</h1>
       <p className="text-muted-foreground mt-2 max-w-xl">{t('intro')}</p>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -77,7 +77,7 @@ export function StartPanel() {
               });
             }}
           >
-            <h2 className="display text-lg">{t('manual')}</h2>
+            <h2 className="title-panel">{t('manual')}</h2>
             <Field label={t('name')}>
               {(props) => (
                 <Input
@@ -120,7 +120,7 @@ export function StartPanel() {
           </form>
 
           <div className="border-border bg-primary-soft rounded-lg border p-5">
-            <h2 className="display text-lg">{t('guided')}</h2>
+            <h2 className="title-panel">{t('guided')}</h2>
             <p className="mt-1 text-sm">{t('guidedBody')}</p>
             <Button asChild className="mt-3">
               <Link href="/builder/ai">

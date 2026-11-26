@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { TEMPLATES } from '../src/features/resume-templates/registry';
 import { fixture, KHMER_PHRASES } from './fixtures';
-import { importResumes, preview, stubPrint } from './helpers';
+import { importResumes, preview, printFromEditor, stubPrint } from './helpers';
 
 const OUT = 'test-results-pdf';
 const SIZES = { a4: [595, 842], letter: [612, 792] } as const;
@@ -31,8 +31,7 @@ async function exportPdf(page: Page, id: string, size: 'a4' | 'letter') {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(700);
   const previewPages = await preview(page).count();
-  await page.getByRole('button', { name: 'Download PDF' }).click();
-  await page.waitForFunction(() => window.__printed);
+  await printFromEditor(page);
   const printed = await page.locator('#rc-print-root > .rc-page').count();
   // No "background graphics" option: colours must survive the dialog defaults.
   const bytes = await page.pdf({ preferCSSPageSize: true, printBackground: false });

@@ -11,7 +11,6 @@ declare global {
 /** Replaces the print dialog, which automation cannot operate. */
 export async function stubPrint(page: Page) {
   await page.addInitScript(() => {
-    localStorage.setItem('resumecraft:skip-export-help', '1');
     window.print = () => {
       window.__printed = (window.__printed ?? 0) + 1;
     };
@@ -42,6 +41,13 @@ export async function saved(page: Page) {
   // The indicator turns to "saving" at once, then back when IndexedDB confirms.
   await page.waitForTimeout(150);
   await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved');
+}
+
+/** Goes through the export dialog to the (stubbed) print window. */
+export async function printFromEditor(page: Page) {
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('button', { name: 'Open print window' }).click();
+  await page.waitForFunction(() => window.__printed);
 }
 
 export const preview = (page: Page) => page.locator('[data-preview-page]');

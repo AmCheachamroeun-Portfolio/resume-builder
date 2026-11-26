@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ResumeDocument } from '@/features/resume-templates/resume-document';
 import { safeFileName } from '@/lib/utils';
@@ -12,12 +13,14 @@ const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Renders the resume with the same component as the live preview, waits until
- * fonts and pagination settle, and hands it to the browser's print engine. The
- * browser shapes the text (including Khmer), embeds fonts and keeps links, and
- * "Save as PDF" writes the file on the user's device.
+ * Renders a document off screen, waits until it has settled, and hands it to the
+ * browser's print engine. The browser shapes the text (including Khmer), embeds
+ * fonts and keeps links, and "Save as PDF" writes the file on the user's device.
  */
-export async function printResume(resume: Resume) {
+async function printContent(
+  render: (laidOut: () => void) => ReactNode,
+  { pageCss, fileName }: { pageCss: string; fileName: string },
+) {
   active?.cleanup();
 
   const container = document.createElement('div');
@@ -26,7 +29,7 @@ export async function printResume(resume: Resume) {
 
   const style = document.createElement('style');
   style.id = PAGE_STYLE_ID;
-  style.textContent = `@page { size: ${resume.design.pageSize === 'a4' ? 'A4' : 'letter'}; margin: 0; }`;
+  style.textContent = `@page { ${pageCss} }`;
   document.head.appendChild(style);
 
   const previousTitle = document.title;
@@ -49,20 +52,19 @@ export async function printResume(resume: Resume) {
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('layout-timeout')), 15000);
     root.render(
-      <ResumeDocument
-        resume={resume}
-        onLayout={() => {
-          lastLayout = performance.now();
-          clearTimeout(timeout);
-          resolve();
-        }}
-      />,
+      render(() => {
+        lastLayout = performance.now();
+        clearTimeout(timeout);
+        resolve();
+      }),
     );
   }).catch((error) => {
     cleanup();
     throw error;
   });
 
+  // Lay the text out once so the fonts it needs start loading.
+  await frame();
   await document.fonts.ready;
   await Promise.all(
     Array.from(container.querySelectorAll('img'), (img) => img.decode().catch(() => undefined)),
@@ -74,7 +76,28 @@ export async function printResume(resume: Resume) {
   } while (performance.now() - lastLayout < 200);
 
   // Chrome and Edge propose the document title as the file name.
-  document.title = safeFileName(resume.title || resume.data.personal.fullName);
+  document.title = safeFileName(fileName);
   window.addEventListener('afterprint', cleanup);
   window.print();
+}
+
+const paper = (size: 'a4' | 'letter') => (size === 'a4' ? 'A4' : 'letter');
+
+/** Prints a resume with the same component as the live preview. */
+export function printResume(resume: Resume, fileName?: string) {
+  return printContent((laidOut) => <ResumeDocument resume={resume} onLayout={laidOut} />, {
+    pageCss: `size: ${paper(resume.design.pageSize)}; margin: 0;`,
+    fileName: fileName || resume.title || resume.data.personal.fullName,
+  });
+}
+
+/** Prints flowing text, letting the browser break it into pages. */
+export function printFlow(
+  render: (laidOut: () => void) => ReactNode,
+  { pageSize, margin, fileName }: { pageSize: 'a4' | 'letter'; margin: string; fileName: string },
+) {
+  return printContent(render, {
+    pageCss: `size: ${paper(pageSize)}; margin: ${margin};`,
+    fileName,
+  });
 }

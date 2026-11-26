@@ -2,16 +2,22 @@ import { stripRich } from '@/features/resume-templates/rich-text';
 import { getTemplate } from '@/features/resume-templates/registry';
 import { safeHref } from '@/lib/url';
 import type { Resume } from '@/types/resume';
+import { extractKeywords, termMatcher } from './keywords';
+
+export { extractKeywords };
 
 export type CheckStatus = 'pass' | 'warn' | 'fail';
+/** Where the writer can act on a finding. */
+export type CheckTarget = { section: string; focus?: string } | 'design' | 'template';
 export type AtsCheck = {
   id: string;
-  group: 'contact' | 'content' | 'structure' | 'readability' | 'layout' | 'keywords';
+  group: 'contact' | 'content' | 'structure' | 'readability' | 'layout' | 'keywords' | 'extraction';
   status: CheckStatus;
   weight: number;
   /** Selects the explanation: messages ats.checks.<id>.<detail> */
   detail: CheckStatus;
   values?: Record<string, string | number>;
+  target?: CheckTarget;
 };
 export type AtsReport = {
   score: number;
@@ -19,43 +25,31 @@ export type AtsReport = {
   keywords: { matched: string[]; missing: string[] } | null;
 };
 
-const STOPWORDS = new Set(
-  `a able about across after all also an and any are as at be been being both but by can candidate company
-  could day do does each etc experience for from good great has have having help how if in including into is
-  it its job join just knowledge like looking may more most must need new not of on one or other our out over
-  per plus preferred required requirements responsibilities role should skills so some strong such team than
-  that the their them then there these they this those through to under understanding up us use using very we
-  well what when where which while who will with within work working would years you your`.split(
-    /\s+/,
-  ),
-);
-
-/** Distinctive terms from a job description, most frequent first. English and Latin-script terms. */
-export function extractKeywords(text: string, limit = 25) {
-  const counts = new Map<string, number>();
-  for (const match of text.toLowerCase().match(/[a-z][a-z0-9+#.\-/]*[a-z0-9+#]|\b[cr]\b/g) ?? []) {
-    for (const word of match.split('/')) {
-      if (word.length < 2 && word !== 'c' && word !== 'r') continue;
-      if (!STOPWORDS.has(word)) counts.set(word, (counts.get(word) ?? 0) + 1);
-    }
-  }
-  return [...counts]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([word]) => word);
-}
-
-function containsTerm(haystack: string, term: string) {
-  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // Tolerate simple plurals on either side.
-  const stem = escaped.replace(/s$/, '');
-  return new RegExp(`(^|[^a-z0-9+#])${stem}(s|es)?($|[^a-z0-9+#])`).test(haystack);
+/**
+ * Terms from a job advert that a piece of writing uses although the resume does
+ * not, so the writer can confirm each one is true.
+ */
+export function unsupportedTerms(
+  draft: string,
+  resumeText: string,
+  jobDescription: string,
+  ignore = '',
+) {
+  const written = termMatcher(draft);
+  const known = termMatcher(`${resumeText} \n ${ignore}`);
+  return extractKeywords(jobDescription, 40).filter((term) => written(term) && !known(term));
 }
 
 const isStandardHeading = (title: string) =>
   /experience|education|skill|project|certif|language|award|achievement|volunteer|publication|reference|interest|summary|training|leadership|activities|course|បទពិសោធន៍|ការអប់រំ|ជំនាញ/i.test(
     title,
   );
+
+/** Counts words in any script, including ones written without spaces. */
+function countWords(text: string) {
+  const segments = new Intl.Segmenter(undefined, { granularity: 'word' }).segment(text);
+  return Array.from(segments).filter((s) => s.isWordLike).length;
+}
 
 export function analyzeResume(resume: Resume, jobDescription = ''): AtsReport {
   const { data, design } = resume;
@@ -71,19 +65,23 @@ export function analyzeResume(resume: Resume, jobDescription = ''): AtsReport {
     group: AtsCheck['group'],
     weight: number,
     status: CheckStatus,
+    target?: CheckTarget,
     values?: AtsCheck['values'],
-  ) => checks.push({ id, group, weight, status, detail: status, values });
+  ) => checks.push({ id, group, weight, status, detail: status, values, target });
+  const personal = (field: string) => ({ section: 'personal', focus: `personal.${field}` });
+  const section = (key: string, focus?: string) => ({ section: key, focus });
 
   const p = data.personal;
-  add('name', 'contact', 8, p.fullName.trim() ? 'pass' : 'fail');
+  add('name', 'contact', 8, p.fullName.trim() ? 'pass' : 'fail', personal('fullName'));
   add(
     'email',
     'contact',
     8,
     safeHref(`mailto:${p.email.trim()}`) && /\S+@\S+\.\S+/.test(p.email) ? 'pass' : 'fail',
+    personal('email'),
   );
-  add('phone', 'contact', 5, p.phone.trim() ? 'pass' : 'fail');
-  add('location', 'contact', 2, p.location.trim() ? 'pass' : 'warn');
+  add('phone', 'contact', 5, p.phone.trim() ? 'pass' : 'fail', personal('phone'));
+  add('location', 'contact', 2, p.location.trim() ? 'pass' : 'warn', personal('location'));
 
   const summaryText = visible.has('summary')
     ? stripRich(Object.values(data.summary).join('\n'))
@@ -99,6 +97,7 @@ export function analyzeResume(resume: Resume, jobDescription = ''): AtsReport {
       : summaryText
         ? 'warn'
         : 'fail',
+    section('summary'),
   );
   add(
     'history',
@@ -109,52 +108,109 @@ export function analyzeResume(resume: Resume, jobDescription = ''): AtsReport {
       : education.length || shown('projects', data.projects).length
         ? 'warn'
         : 'fail',
+    section('experience'),
   );
-  add('education', 'content', 5, education.length ? 'pass' : 'warn');
-  add('skills', 'content', 8, skills.length >= 5 ? 'pass' : skills.length ? 'warn' : 'fail', {
-    count: skills.length,
-  });
+  add('education', 'content', 5, education.length ? 'pass' : 'warn', section('education'));
+  add(
+    'skills',
+    'content',
+    8,
+    skills.length >= 5 ? 'pass' : skills.length ? 'warn' : 'fail',
+    section('skills'),
+    { count: skills.length },
+  );
 
-  const undated = experience.filter((x) => !x.start || (!x.end && !x.current)).length;
-  add('dates', 'structure', 5, undated ? 'warn' : 'pass', { count: undated });
+  const undated = experience.filter((x) => !x.start || (!x.end && !x.current));
+  add(
+    'dates',
+    'structure',
+    5,
+    undated.length ? 'warn' : 'pass',
+    section('experience', undated[0]?.id),
+    { count: undated.length },
+  );
   const thin = experience.filter(
     (x) => stripRich(`${x.description}\n${x.achievements}`).length < 40,
-  ).length;
-  add('detail', 'structure', 7, thin ? (thin === experience.length ? 'fail' : 'warn') : 'pass', {
-    count: thin,
-  });
+  );
+  add(
+    'detail',
+    'structure',
+    7,
+    thin.length ? (thin.length === experience.length ? 'fail' : 'warn') : 'pass',
+    section('experience', thin[0]?.id),
+    { count: thin.length },
+  );
   const unusual = data.custom.filter(
     (c) => visible.has(`custom:${c.id}`) && c.items.length && !isStandardHeading(c.title),
   );
-  add('headings', 'structure', 3, unusual.length ? 'warn' : 'pass', {
-    names: unusual.map((c) => c.title).join(', '),
-  });
+  add(
+    'headings',
+    'structure',
+    3,
+    unusual.length ? 'warn' : 'pass',
+    unusual[0] && section(`custom:${unusual[0].id}`),
+    { names: unusual.map((c) => c.title).join(', ') },
+  );
 
-  const bodies = [
-    ...experience.flatMap((x) => [x.description, x.achievements]),
-    ...shown('projects', data.projects).map((x) => x.description),
-    summaryText,
+  const tooLong = (text: string) =>
+    stripRich(text)
+      .split('\n')
+      .filter((line) => line.length > 320).length;
+  const blocks: [CheckTarget, string][] = [
+    [section('summary'), summaryText],
+    ...experience.flatMap((x): [CheckTarget, string][] => [
+      [section('experience', x.id), x.description],
+      [section('experience', x.id), x.achievements],
+    ]),
+    ...shown('projects', data.projects).map((x): [CheckTarget, string] => [
+      section('projects', x.id),
+      x.description,
+    ]),
   ];
-  const long = bodies.flatMap((b) => stripRich(b).split('\n')).filter((l) => l.length > 320).length;
-  add('sentences', 'readability', 5, long ? 'warn' : 'pass', { count: long });
-  add('fontSize', 'readability', 3, design.bodySize >= 9 ? 'pass' : 'warn', {
+  const bodies = blocks.map(([, text]) => text);
+  const long = bodies.reduce((sum, text) => sum + tooLong(text), 0);
+  add(
+    'sentences',
+    'readability',
+    5,
+    long ? 'warn' : 'pass',
+    blocks.find(([, text]) => tooLong(text))?.[0],
+    { count: long },
+  );
+  add('fontSize', 'readability', 3, design.bodySize >= 9 ? 'pass' : 'warn', 'design', {
     size: design.bodySize,
   });
-  const words = stripRich(bodies.join('\n')).split(/\s+/).filter(Boolean).length;
-  add('length', 'readability', 3, words > 900 ? 'warn' : 'pass', { count: words });
+  const words = countWords(stripRich(bodies.join('\n')));
+  add('length', 'readability', 3, words > 900 ? 'warn' : 'pass', section('experience'), {
+    count: words,
+  });
 
   add(
     'columns',
     'layout',
     10,
     template.ats === 'high' ? 'pass' : template.ats === 'medium' ? 'warn' : 'fail',
+    'template',
   );
   const hasPhoto = template.photo && design.photoVisible && Boolean(p.photo);
   const bars =
     [template.layout.skills, template.layout.sidebarSkills].some(
       (v) => v === 'bars' || v === 'dots',
     ) && skills.some((s) => s.level > 0);
-  add('graphics', 'layout', 5, hasPhoto && bars ? 'fail' : hasPhoto || bars ? 'warn' : 'pass');
+  add(
+    'graphics',
+    'layout',
+    5,
+    hasPhoto && bars ? 'fail' : hasPhoto || bars ? 'warn' : 'pass',
+    'design',
+  );
+
+  // Only reported when present: both can come out wrong when software reads a PDF.
+  const everything = JSON.stringify({ ...data, personal: { ...p, photo: '' } });
+  if (/\p{Extended_Pictographic}/u.test(everything.replace(/[©®™]/g, ''))) {
+    add('symbols', 'extraction', 3, 'warn');
+  }
+  if (/[\u1780-\u17ff]/.test(everything)) add('khmer', 'extraction', 0, 'warn');
 
   let keywords: AtsReport['keywords'] = null;
   const terms = extractKeywords(jobDescription);
@@ -171,16 +227,18 @@ export function analyzeResume(resume: Resume, jobDescription = ''): AtsReport {
       ...data.custom
         .filter((c) => visible.has(`custom:${c.id}`))
         .flatMap((c) => c.items.flatMap((i) => [i.title, i.description])),
-    ]
-      .join(' \n ')
-      .toLowerCase();
-    const matched = terms.filter((term) => containsTerm(haystack, term));
+    ].join(' \n ');
+    const matched = terms.filter(termMatcher(haystack));
     keywords = { matched, missing: terms.filter((term) => !matched.includes(term)) };
     const ratio = matched.length / terms.length;
-    add('keywords', 'keywords', 20, ratio >= 0.6 ? 'pass' : ratio >= 0.3 ? 'warn' : 'fail', {
-      matched: matched.length,
-      total: terms.length,
-    });
+    add(
+      'keywords',
+      'keywords',
+      20,
+      ratio >= 0.6 ? 'pass' : ratio >= 0.3 ? 'warn' : 'fail',
+      undefined,
+      { matched: matched.length, total: terms.length },
+    );
   }
 
   const total = checks.reduce((sum, c) => sum + c.weight, 0);

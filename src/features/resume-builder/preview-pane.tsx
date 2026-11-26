@@ -1,25 +1,13 @@
 'use client';
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  Expand,
-  LayoutTemplate,
-  Minus,
-  MoveHorizontal,
-  Plus,
-  Scan,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Expand, Minus, MoveHorizontal, Plus, Scan } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/field';
-import { FittedPages } from '@/features/resume-templates/preview-dialog';
 import { PAGE_DIMENSIONS } from '@/features/resume-templates/resume-document';
-import { ScaledPages } from '@/features/resume-templates/scaled-pages';
-import { actions } from '@/stores/editor-store';
-import type { PageSize, Resume } from '@/types/resume';
+import { FittedPages, ScaledPages } from '@/features/resume-templates/scaled-pages';
+import type { Resume } from '@/types/resume';
 
 export type Zoom = 'width' | 'page' | number;
 const MIN_ZOOM = 0.3;
@@ -64,11 +52,9 @@ export function FullPreview({
 
 export function PreviewPane({
   resume,
-  onChangeTemplate,
   onFullScreen,
 }: {
   resume: Resume;
-  onChangeTemplate: () => void;
   onFullScreen: () => void;
 }) {
   const t = useTranslations('editor');
@@ -95,7 +81,7 @@ export function PreviewPane({
     zoom === 'width'
       ? fitWidth
       : zoom === 'page'
-        ? Math.min(fitWidth, (size.height - 24) / page.height)
+        ? Math.min(fitWidth, size.height / page.height)
         : zoom;
   const step = (delta: number) =>
     setZoom(Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, scale + delta)) * 10) / 10);
@@ -118,10 +104,63 @@ export function PreviewPane({
   const onLayout = useCallback((count: number) => setPages(count), []);
   const shown = Math.min(current, pages);
 
+  const divider = <span aria-hidden className="bg-border mx-1 h-4 w-px" />;
+
   return (
-    <section aria-label={t('preview.label')} className="bg-desk flex h-full min-h-0 flex-col">
-      <div className="border-border bg-surface flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-2 py-1.5">
-        <div className="flex items-center">
+    <section
+      aria-label={t('preview.label')}
+      className="bg-desk relative flex h-full min-h-0 flex-col"
+    >
+      <div
+        ref={viewport}
+        onScroll={onScroll}
+        tabIndex={0}
+        aria-label={t('preview.label')}
+        className="min-h-0 flex-1 overflow-auto px-5 pt-5 pb-20 sm:px-8 sm:pt-6"
+      >
+        {size.width > 0 && (
+          <div className="w-max min-w-full">
+            <ScaledPages
+              resume={deferred}
+              scale={scale}
+              onLayout={onLayout}
+              pageLabel={(number, total) => t('preview.pageOf', { page: number, total })}
+            />
+          </div>
+        )}
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center px-2">
+        <div
+          role="toolbar"
+          aria-label={t('preview.controls')}
+          className="bg-raised/95 shadow-overlay pointer-events-auto flex max-w-full items-center rounded-lg p-1"
+        >
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('preview.previousPage')}
+            disabled={shown <= 1}
+            onClick={() => goTo(shown - 1)}
+          >
+            <ChevronLeft />
+          </Button>
+          <span
+            className="px-1 text-xs whitespace-nowrap tabular-nums"
+            role="status"
+            data-testid="page-status"
+          >
+            {t('preview.pageOf', { page: shown, total: pages })}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('preview.nextPage')}
+            disabled={shown >= pages}
+            onClick={() => goTo(shown + 1)}
+          >
+            <ChevronRight />
+          </Button>
+          {divider}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -131,7 +170,7 @@ export function PreviewPane({
           >
             <Minus />
           </Button>
-          <output className="w-11 text-center text-xs tabular-nums">
+          <output className="w-11 text-center text-xs tabular-nums max-sm:hidden">
             {Math.round(scale * 100)}%
           </output>
           <Button
@@ -143,6 +182,7 @@ export function PreviewPane({
           >
             <Plus />
           </Button>
+          {divider}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -165,49 +205,6 @@ export function PreviewPane({
           >
             <Scan />
           </Button>
-        </div>
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('preview.previousPage')}
-            disabled={shown <= 1}
-            onClick={() => goTo(shown - 1)}
-          >
-            <ChevronLeft />
-          </Button>
-          <span className="text-xs tabular-nums" role="status" data-testid="page-status">
-            {t('preview.pageOf', { page: shown, total: pages })}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('preview.nextPage')}
-            disabled={shown >= pages}
-            onClick={() => goTo(shown + 1)}
-          >
-            <ChevronRight />
-          </Button>
-        </div>
-        <div className="ml-auto flex items-center gap-1">
-          <Select
-            aria-label={t('preview.pageSize')}
-            className="h-8 w-auto text-xs"
-            value={resume.design.pageSize}
-            onChange={(e) => actions.setDesign({ pageSize: e.target.value as PageSize })}
-          >
-            <option value="a4">A4</option>
-            <option value="letter">Letter</option>
-          </Select>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('changeTemplate')}
-            title={t('changeTemplate')}
-            onClick={onChangeTemplate}
-          >
-            <LayoutTemplate />
-          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -218,24 +215,6 @@ export function PreviewPane({
             <Expand />
           </Button>
         </div>
-      </div>
-      <div
-        ref={viewport}
-        onScroll={onScroll}
-        tabIndex={0}
-        aria-label={t('preview.label')}
-        className="min-h-0 flex-1 overflow-auto p-4"
-      >
-        {size.width > 0 && (
-          <div className="w-max min-w-full">
-            <ScaledPages
-              resume={deferred}
-              scale={scale}
-              onLayout={onLayout}
-              pageLabel={(number, total) => t('preview.pageOf', { page: number, total })}
-            />
-          </div>
-        )}
       </div>
     </section>
   );

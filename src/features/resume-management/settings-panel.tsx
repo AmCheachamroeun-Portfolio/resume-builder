@@ -35,6 +35,7 @@ export function SettingsPanel() {
   const switchLocale = useSwitchLocale();
   const backup = useBackup();
   const count = useLiveQuery(() => db.resumes.count().catch(() => 0));
+  const letters = useLiveQuery(() => db.letters.count().catch(() => 0));
   const consent = useConsent();
   const ai = useAiStatus();
   const [confirming, setConfirming] = useState(false);
@@ -46,9 +47,9 @@ export function SettingsPanel() {
 
   return (
     <div className="container-page max-w-3xl py-10">
-      <h1 className="display text-3xl sm:text-4xl">{t('title')}</h1>
+      <h1 className="title-page">{t('title')}</h1>
 
-      <h2 className="display mt-8 text-xl">{t('appearance')}</h2>
+      <h2 className="title-panel mt-8">{t('appearance')}</h2>
       <Row title={tTheme('label')} body={t('themeNote')}>
         <Segmented<Theme>
           label={tTheme('label')}
@@ -69,9 +70,9 @@ export function SettingsPanel() {
         />
       </Row>
 
-      <h2 className="display mt-10 text-xl">{t('data')}</h2>
+      <h2 className="title-panel mt-10">{t('data')}</h2>
       <Row
-        title={t('stored', { count: count ?? 0 })}
+        title={`${t('stored', { count: count ?? 0 })} · ${t('storedLetters', { count: letters ?? 0 })}`}
         body={usage === null ? t('storedNote') : t('usage', { size: (usage / 1048576).toFixed(1) })}
       >
         <Button onClick={backup.openImport}>
@@ -91,7 +92,7 @@ export function SettingsPanel() {
         </Button>
       </Row>
 
-      <h2 className="display mt-10 text-xl">{t('ai')}</h2>
+      <h2 className="title-panel mt-10">{t('ai')}</h2>
       <Row title={t('aiStatus')} body={ai === null ? t('aiChecking') : t(ai ? 'aiOn' : 'aiOff')}>
         <Button disabled={!consent} onClick={revokeConsent}>
           {t(consent ? 'revoke' : 'notGiven')}
@@ -99,7 +100,7 @@ export function SettingsPanel() {
       </Row>
 
       <section id="privacy" className="mt-10 scroll-mt-20">
-        <h2 className="display text-xl">{t('privacyTitle')}</h2>
+        <h2 className="title-panel">{t('privacyTitle')}</h2>
         <ul className="text-muted-foreground mt-3 list-disc space-y-2 pl-5 text-sm">
           {['local', 'loss', 'aiSend', 'noTracking'].map((key) => (
             <li key={key}>{t(`privacy.${key}`)}</li>

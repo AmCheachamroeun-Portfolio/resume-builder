@@ -8,6 +8,10 @@ const MAX_BODY = 80_000;
 
 const STATUS: Record<AiErrorCode, number> = {
   'not-configured': 503,
+  'invalid-key': 503,
+  'model-unavailable': 503,
+  // Nobody is listening any more; this is only for completeness.
+  cancelled: 408,
   'invalid-request': 400,
   forbidden: 403,
   'rate-limited': 429,
@@ -62,12 +66,12 @@ export async function POST(request: Request, context: RouteContext<'/api/ai/[act
   if (!input.success) return fail('invalid-request');
 
   try {
-    const data = await runAi(name, input.data);
+    const data = await runAi(name, input.data, undefined, request.signal);
     return Response.json({ data }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const code = error instanceof AiFailure ? error.code : 'upstream';
     // The code only: request bodies contain personal data and are never logged.
-    console.error(`[ai] ${name} failed: ${code}`);
+    if (code !== 'cancelled') console.error(`[ai] ${name} failed: ${code}`);
     return fail(code);
   }
 }

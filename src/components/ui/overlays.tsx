@@ -1,9 +1,9 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Dialog as DialogPrimitive, DropdownMenu } from 'radix-ui';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
@@ -14,6 +14,7 @@ export function Dialog({
   description,
   trigger,
   children,
+  footer,
   className,
 }: {
   open?: boolean;
@@ -22,6 +23,8 @@ export function Dialog({
   description?: ReactNode;
   trigger?: ReactNode;
   children: ReactNode;
+  /** Actions that stay in view while the body scrolls. */
+  footer?: ReactNode;
   className?: string;
 }) {
   const t = useTranslations('common');
@@ -29,17 +32,17 @@ export function Dialog({
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       {trigger && <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>}
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <DialogPrimitive.Content
           {...(description ? {} : { 'aria-describedby': undefined })}
           className={cn(
-            'border-border bg-surface shadow-overlay fixed top-1/2 left-1/2 z-50 flex max-h-[min(90dvh,60rem)] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border',
+            'bg-surface shadow-overlay fixed top-1/2 left-1/2 z-50 flex max-h-[min(92dvh,60rem)] w-[calc(100vw-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl',
             className,
           )}
         >
           <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
-            <div>
-              <DialogPrimitive.Title className="display text-lg">{title}</DialogPrimitive.Title>
+            <div className="min-w-0">
+              <DialogPrimitive.Title className="title-panel">{title}</DialogPrimitive.Title>
               {description && (
                 <DialogPrimitive.Description className="text-muted-foreground mt-1 text-sm">
                   {description}
@@ -53,6 +56,11 @@ export function Dialog({
             </DialogPrimitive.Close>
           </div>
           <div className="min-h-0 overflow-y-auto px-5 pb-5">{children}</div>
+          {footer && (
+            <div className="border-border flex flex-wrap items-center justify-end gap-2 border-t px-5 py-3">
+              {footer}
+            </div>
+          )}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -99,32 +107,54 @@ export type MenuItem = {
   onSelect: () => void;
   danger?: boolean;
   checked?: boolean;
+  disabled?: boolean;
+  /** Draws a divider above this item. */
+  separated?: boolean;
+  /** Keyboard shortcut shown at the trailing edge. */
+  shortcut?: string;
 };
 
-export function Menu({ trigger, items }: { trigger: ReactNode; items: MenuItem[] }) {
+export function Menu({
+  trigger,
+  items,
+  align = 'end',
+}: {
+  trigger: ReactNode;
+  items: MenuItem[];
+  align?: 'start' | 'end';
+}) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          align="end"
+          align={align}
           sideOffset={6}
-          className="border-border bg-surface shadow-overlay z-50 min-w-44 rounded-md border p-1"
+          collisionPadding={8}
+          className="bg-raised shadow-overlay z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-48 overflow-y-auto rounded-lg p-1"
         >
           {items.map((item) => (
-            <DropdownMenu.Item
-              key={item.label}
-              onSelect={item.onSelect}
-              aria-current={item.checked || undefined}
-              className={cn(
-                'data-highlighted:bg-muted flex cursor-pointer items-center gap-2.5 rounded-sm px-2.5 py-2 text-sm outline-none [&_svg]:size-4',
-                item.danger && 'text-danger',
-                item.checked && 'text-primary font-semibold',
-              )}
-            >
-              {item.icon}
-              {item.label}
-            </DropdownMenu.Item>
+            <Fragment key={item.label}>
+              {item.separated && <DropdownMenu.Separator className="bg-border mx-2 my-1 h-px" />}
+              <DropdownMenu.Item
+                onSelect={item.onSelect}
+                disabled={item.disabled}
+                aria-current={item.checked || undefined}
+                className={cn(
+                  'data-highlighted:bg-muted flex cursor-pointer items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm outline-none data-disabled:opacity-40 pointer-coarse:py-2.5 [&_svg]:size-4',
+                  item.danger && 'text-danger',
+                )}
+              >
+                {item.icon}
+                <span className="flex-1">{item.label}</span>
+                {item.checked && <Check aria-hidden className="text-primary" />}
+                {item.shortcut && (
+                  <span aria-hidden className="text-muted-foreground text-xs">
+                    {item.shortcut}
+                  </span>
+                )}
+              </DropdownMenu.Item>
+            </Fragment>
           ))}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

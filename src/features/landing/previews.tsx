@@ -1,6 +1,5 @@
 'use client';
 
-import { motion, MotionConfig } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { Segmented } from '@/components/ui/field';
@@ -19,73 +18,50 @@ export function SampleThumbnail({
   return <ResumeThumbnail resume={resume} className={className} />;
 }
 
-/** Two real template pages laid on the desk, one slightly behind the other. */
-export function HeroSheets() {
-  const t = useTranslations('landing.hero');
-  return (
-    <MotionConfig reducedMotion="user">
-      <figure className="bg-desk relative m-0 overflow-hidden rounded-lg px-6 pt-8 pb-4 sm:px-10">
-        <div className="relative mx-auto max-w-md pr-[14%] pb-6">
-          <motion.div
-            className="absolute top-8 right-0 w-[74%]"
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          >
-            <SampleThumbnail templateId="executive-classic" className="shadow-paper" />
-          </motion.div>
-          <motion.div
-            className="relative"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-          >
-            <SampleThumbnail templateId="navy-professional" className="shadow-paper" />
-          </motion.div>
-        </div>
-        <figcaption className="text-muted-foreground text-center text-xs">
-          {t('caption')}
-        </figcaption>
-      </figure>
-    </MotionConfig>
-  );
-}
+const SWATCHES = [
+  ['#1f2937', 'ink'],
+  ['#1d4e89', 'blue'],
+  ['#8a2e2e', 'red'],
+  ['#6b4e3d', 'brown'],
+  ['#0f6b5c', 'teal'],
+] as const;
 
-const SWATCHES = ['#17694e', '#1d3557', '#8a2e2e', '#6b4e3d', '#5b3f8c'];
+const DEMO_TEMPLATES = ['clean-timeline', 'corporate-edge', 'modern-slate'];
 
 /** A working slice of the design panel, so the claim can be tried on the page. */
 export function CustomiseDemo() {
   const t = useTranslations('landing.customise');
-  const [accent, setAccent] = useState(SWATCHES[0]!);
+  const [accent, setAccent] = useState<string>(SWATCHES[1][0]);
   const [font, setFont] = useState<'inter' | 'lora' | 'plex'>('inter');
-  const [templateId, setTemplate] = useState('clean-timeline');
+  const [templateId, setTemplate] = useState(DEMO_TEMPLATES[0]!);
   const resume = useMemo(() => {
     const base = sampleResume(templateId);
     return { ...base, design: { ...base.design, accent, font } };
   }, [accent, font, templateId]);
 
   return (
-    <div className="bg-desk grid gap-6 rounded-lg p-5 sm:grid-cols-[1fr_minmax(0,17rem)] sm:p-8">
-      <div className="flex flex-col gap-5 self-center">
+    <div className="bg-desk grid gap-6 rounded-xl p-5 sm:grid-cols-[1fr_minmax(0,19rem)] sm:p-8">
+      <div className="bg-surface shadow-xs flex flex-col gap-5 self-center rounded-lg p-4">
         <fieldset>
-          <legend className="mb-2 text-[13px] font-semibold">{t('colour')}</legend>
+          <legend className="label-small mb-2">{t('colour')}</legend>
           <div className="flex gap-2.5">
-            {SWATCHES.map((swatch) => (
+            {SWATCHES.map(([swatch, name]) => (
               <button
                 key={swatch}
                 type="button"
-                aria-label={swatch}
+                aria-label={t(`colours.${name}`)}
                 aria-pressed={swatch === accent}
                 onClick={() => setAccent(swatch)}
-                className="aria-pressed:ring-foreground aria-pressed:ring-offset-desk size-7 rounded-sm aria-pressed:ring-2 aria-pressed:ring-offset-2"
+                className="aria-pressed:ring-primary aria-pressed:ring-offset-surface size-7 rounded-full border border-black/10 aria-pressed:ring-2 aria-pressed:ring-offset-2"
                 style={{ background: swatch }}
               />
             ))}
           </div>
         </fieldset>
         <div>
-          <p className="mb-2 text-[13px] font-semibold">{t('font')}</p>
+          <p className="label-small mb-2">{t('font')}</p>
           <Segmented
+            stretch
             label={t('font')}
             value={font}
             onChange={setFont}
@@ -97,12 +73,13 @@ export function CustomiseDemo() {
           />
         </div>
         <div>
-          <p className="mb-2 text-[13px] font-semibold">{t('template')}</p>
+          <p className="label-small mb-2">{t('template')}</p>
           <Segmented
+            stretch
             label={t('template')}
             value={templateId}
             onChange={setTemplate}
-            options={['clean-timeline', 'corporate-edge', 'modern-slate'].map((id) => ({
+            options={DEMO_TEMPLATES.map((id) => ({
               value: id,
               label: getTemplate(id).name.split(' ')[1],
               title: getTemplate(id).name,

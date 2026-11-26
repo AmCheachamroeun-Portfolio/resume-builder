@@ -1,8 +1,18 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SAMPLE_DATA } from '@/constants/sample-resume';
+import { filterResumes } from '@/features/resume-management/filter-resumes';
 import { createResume } from '@/lib/resume-factory';
-import { createBackup, parseBackup, restoreResumes } from '@/lib/storage/backup';
+import { createBackup, parseBackup, restoreBackup } from '@/lib/storage/backup';
+import { backupDue, FIRST_REMINDER, REMINDER_AGE } from '@/lib/storage/backup-reminder';
+import {
+  copyLetter,
+  getLetter,
+  letterWriter,
+  listLetters,
+  newLetter,
+  saveLetter,
+} from '@/lib/storage/letters';
 import {
   db,
   deleteAllData,
@@ -11,8 +21,19 @@ import {
   getResume,
   listResumes,
   renameResume,
+  resumeWriter,
   saveResume,
 } from '@/lib/storage/db';
+import {
+  AUTO_INTERVAL,
+  AUTO_LIMIT,
+  listVersions,
+  MANUAL_LIMIT,
+  recordVersion,
+  restoredResume,
+  snapshotIfDue,
+  VersionLimitError,
+} from '@/lib/storage/versions';
 
 const make = (id: string) =>
   createResume({ id, templateId: 'ats-essential', title: id, data: structuredClone(SAMPLE_DATA) });
@@ -32,6 +53,25 @@ describe('IndexedDB storage', () => {
     expect((await listResumes()).resumes).toHaveLength(2);
     await deleteResume('a');
     expect(await getResume('a')).toBeNull();
+  });
+
+  it('refuses to overwrite a newer version or revive a deleted resume', async () => {
+    const original = make('a');
+    await saveResume(original);
+    const first = resumeWriter(original);
+    const second = resumeWriter(original);
+    await first({ ...original, title: 'From tab one', updatedAt: original.updatedAt + 1 });
+    await first({ ...original, title: 'Again', updatedAt: original.updatedAt + 2 });
+    const late = { ...original, title: 'From tab two', updatedAt: original.updatedAt + 3 };
+    await expect(second(late)).rejects.toMatchObject({ reason: 'conflict' });
+    expect((await getResume('a'))?.title).toBe('Again');
+    await deleteResume('a');
+    await expect(first(late)).rejects.toMatchObject({ reason: 'deleted' });
+    expect(await getResume('a')).toBeNull();
+    await first(late, { force: true });
+    expect((await getResume('a'))?.title).toBe('From tab two');
+    await first({ ...late, title: 'Back to normal', updatedAt: late.updatedAt + 1 });
+    expect((await getResume('a'))?.title).toBe('Back to normal');
   });
 
   it('counts unreadable records without deleting them', async () => {
@@ -63,7 +103,7 @@ describe('JSON import and export', () => {
   it('round-trips exactly', () => {
     const resume = make('a');
     const parsed = parseBackup(createBackup([resume]));
-    expect(parsed).toEqual({ ok: true, resumes: [resume], skipped: 0 });
+    expect(parsed).toEqual({ ok: true, resumes: [resume], letters: [], skipped: 0 });
   });
 
   it('explains why a file is refused', () => {
@@ -84,17 +124,154 @@ describe('JSON import and export', () => {
   it('never overwrites an existing resume', async () => {
     const original = make('a');
     await saveResume(original);
-    expect(await restoreResumes([original])).toEqual({ added: 0, unchanged: 1 });
+    expect(await restoreBackup([original])).toEqual({ added: 0, unchanged: 1 });
     const changed = { ...original, title: 'Different' };
-    expect(await restoreResumes([changed])).toEqual({ added: 1, unchanged: 0 });
+    expect(await restoreBackup([changed])).toEqual({ added: 1, unchanged: 0 });
     expect((await getResume('a'))?.title).toBe('a');
     expect((await listResumes()).resumes).toHaveLength(2);
   });
 
   it('does not replace a stored record it cannot read', async () => {
     await db.resumes.put({ id: 'a', schemaVersion: 99 } as never);
-    expect(await restoreResumes([make('a')])).toEqual({ added: 1, unchanged: 0 });
+    expect(await restoreBackup([make('a')])).toEqual({ added: 1, unchanged: 0 });
     expect(await db.resumes.get('a')).toMatchObject({ schemaVersion: 99 });
     expect(await db.resumes.count()).toBe(2);
+  });
+});
+
+describe('version history', () => {
+  beforeEach(async () => {
+    await db.versions.clear();
+  });
+
+  it('keeps changed states, skips unchanged ones and respects the interval', async () => {
+    const resume = make('a');
+    await saveResume(resume);
+    expect(await recordVersion(resume, 'auto', '', 1000)).not.toBeNull();
+    // A new timestamp or file name is not a change to the document.
+    const renamed = { ...resume, title: 'Other', updatedAt: resume.updatedAt + 1 };
+    expect(await recordVersion(renamed, 'auto', '', 2000)).toBeNull();
+    const edited = { ...resume, targetRole: 'Designer' };
+    expect(await snapshotIfDue(edited, 1000 + AUTO_INTERVAL - 1)).toBeNull();
+    expect(await snapshotIfDue(edited, 1000 + AUTO_INTERVAL)).not.toBeNull();
+    const list = await listVersions('a');
+    expect(list.map((v) => v.resume.targetRole)).toEqual(['Designer', resume.targetRole]);
+  });
+
+  it('prunes automatic versions but never the ones saved by hand', async () => {
+    const resume = make('a');
+    await saveResume(resume);
+    await recordVersion(resume, 'manual', '  Keep me  ', 1);
+    for (let i = 0; i < AUTO_LIMIT + 5; i++) {
+      await recordVersion({ ...resume, targetRole: `Role ${i}` }, 'auto', '', 10 + i);
+    }
+    const list = await listVersions('a');
+    expect(list).toHaveLength(AUTO_LIMIT + 1);
+    expect(list.at(-1)).toMatchObject({ kind: 'manual', name: 'Keep me' });
+    expect(list[0]!.resume.targetRole).toBe(`Role ${AUTO_LIMIT + 4}`);
+    for (let i = 1; i < MANUAL_LIMIT; i++) await recordVersion(resume, 'manual', '', 100 + i);
+    await expect(recordVersion(resume, 'manual')).rejects.toBeInstanceOf(VersionLimitError);
+  });
+
+  it('restores content under the current identity and is removed with the resume', async () => {
+    const resume = make('a');
+    await saveResume(resume);
+    const version = (await recordVersion({ ...resume, targetRole: 'Old role' }, 'manual'))!;
+    const current = { ...resume, title: 'Current name', targetRole: 'New role' };
+    expect(restoredResume(current, version)).toMatchObject({
+      id: 'a',
+      title: 'Current name',
+      targetRole: 'Old role',
+    });
+    await deleteResume('a');
+    expect(await listVersions('a')).toEqual([]);
+    // Nothing is recorded for a resume that no longer exists.
+    expect(await recordVersion(resume, 'auto')).toBeNull();
+  });
+});
+
+describe('cover letters', () => {
+  beforeEach(async () => {
+    await db.letters.clear();
+  });
+
+  it('copies the sender from a resume and outlives that resume', async () => {
+    const resume = make('a');
+    await saveResume(resume);
+    const letter = newLetter('For Acme', resume);
+    expect(letter.sender.fullName).toBe('Maya Sovann');
+    expect(letter.resumeId).toBe('a');
+    await saveLetter(letter);
+    await deleteResume('a');
+    expect((await getLetter(letter.id))?.sender.fullName).toBe('Maya Sovann');
+  });
+
+  it('guards against overwriting from a second tab', async () => {
+    const letter = newLetter('One');
+    await saveLetter(letter);
+    const first = letterWriter(letter);
+    const second = letterWriter(letter);
+    await first({ ...letter, body: 'First', updatedAt: letter.updatedAt + 1 });
+    await expect(
+      second({ ...letter, body: 'Second', updatedAt: letter.updatedAt + 2 }),
+    ).rejects.toMatchObject({ reason: 'conflict' });
+    expect((await getLetter(letter.id))?.body).toBe('First');
+  });
+
+  it('travels in backups without replacing anything', async () => {
+    const letter = { ...newLetter('Mine'), body: 'Dear team' };
+    await saveLetter(letter);
+    const parsed = parseBackup(createBackup([], [letter, { id: 'broken' } as never]));
+    expect(parsed).toMatchObject({ ok: true, resumes: [], skipped: 1 });
+    if (!parsed.ok) throw new Error('unreachable');
+    expect(await restoreBackup([], parsed.letters)).toEqual({ added: 0, unchanged: 1 });
+    await saveLetter({ ...letter, body: 'Changed since the backup' });
+    expect(await restoreBackup([], parsed.letters)).toEqual({ added: 1, unchanged: 0 });
+    const bodies = (await listLetters()).letters.map((l) => l.body);
+    expect(bodies.sort()).toEqual(['Changed since the backup', 'Dear team']);
+    await copyLetter(letter, 'Copy');
+    expect((await listLetters()).letters).toHaveLength(3);
+    vi.stubGlobal('localStorage', {});
+    await deleteAllData();
+    expect(await db.letters.count()).toBe(0);
+  });
+
+  it('keeps older backup files readable and refuses empty ones', () => {
+    const old = JSON.stringify({ app: 'resumecraft', resumes: [make('a')] });
+    expect(parseBackup(old)).toMatchObject({ ok: true, letters: [] });
+    expect(parseBackup(createBackup([]))).toEqual({ ok: false, error: 'no-valid' });
+  });
+});
+
+describe('library helpers', () => {
+  const day = 24 * 60 * 60 * 1000;
+  const documents = [{ createdAt: 100 * day, updatedAt: 120 * day }];
+
+  it('reminds about backups only when there is something to lose', () => {
+    const due = (lastBackup: number, now: number, snoozedUntil = 0) =>
+      backupDue({ documents, lastBackup, snoozedUntil, now });
+    expect(due(0, 100 * day + FIRST_REMINDER - 1)).toBe(false);
+    expect(due(0, 100 * day + FIRST_REMINDER)).toBe(true);
+    expect(due(0, 130 * day, 131 * day)).toBe(false);
+    // Backed up after the last change: nothing to say, however long ago.
+    expect(due(121 * day, 300 * day)).toBe(false);
+    expect(due(119 * day, 119 * day + REMINDER_AGE)).toBe(true);
+    expect(due(119 * day, 119 * day + REMINDER_AGE - 1)).toBe(false);
+    expect(backupDue({ documents: [], lastBackup: 0, snoozedUntil: 0, now: day })).toBe(false);
+  });
+
+  it('searches and sorts resumes', () => {
+    const resumes = [
+      { ...make('b'), title: 'Beta', updatedAt: 2, createdAt: 1 },
+      { ...make('a'), title: 'Alpha', updatedAt: 1, createdAt: 2 },
+    ];
+    const ids = (query: string, sort: 'title' | 'updatedAt' | 'createdAt') =>
+      filterResumes(resumes, query, sort, () => 'Minimal White').map((r) => r.id);
+    expect(ids('', 'title')).toEqual(['a', 'b']);
+    expect(ids('', 'updatedAt')).toEqual(['b', 'a']);
+    expect(ids('', 'createdAt')).toEqual(['a', 'b']);
+    expect(ids('  BETA ', 'title')).toEqual(['b']);
+    expect(ids('minimal', 'title')).toHaveLength(2);
+    expect(resumes[0]!.id).toBe('b');
   });
 });

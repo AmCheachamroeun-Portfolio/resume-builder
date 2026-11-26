@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Languages, Monitor, Moon, Sun } from 'lucide-react';
+import { Languages, Monitor, Moon, Sun } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Menu } from '@/components/ui/overlays';
@@ -24,7 +24,12 @@ export function LanguageMenu() {
   return (
     <Menu
       trigger={
-        <Button variant="ghost" size="sm" aria-label={t('language')}>
+        <Button
+          variant="ghost"
+          size="sm"
+          // The name starts with the visible code so voice control can use it.
+          aria-label={`${locale.toUpperCase()}, ${t('language')}`}
+        >
           <Languages />
           <span className="uppercase">{locale}</span>
         </Button>
@@ -32,7 +37,6 @@ export function LanguageMenu() {
       items={routing.locales.map((code) => ({
         label: LOCALE_NAMES[code],
         checked: code === locale,
-        icon: <Check className={code === locale ? '' : 'invisible'} />,
         onSelect: () => switchLocale(code),
       }))}
     />

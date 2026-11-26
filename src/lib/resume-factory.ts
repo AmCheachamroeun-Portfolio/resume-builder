@@ -5,6 +5,7 @@ import {
   resumeDataSchema,
   SCHEMA_VERSION,
   type ContentLanguage,
+  type Design,
   type Resume,
   type ResumeData,
   type SectionState,
@@ -21,6 +22,8 @@ export function createResume(options: {
   language?: ContentLanguage;
   data?: ResumeData;
   targetRole?: string;
+  /** Choices made before creation, such as an accent colour picked in the gallery. */
+  design?: Partial<Design>;
   id?: string;
 }): Resume {
   const template = getTemplate(options.templateId);
@@ -36,7 +39,7 @@ export function createResume(options: {
     createdAt: now,
     updatedAt: now,
     data,
-    design: { ...template.design },
+    design: { ...template.design, ...options.design },
     sections: [
       ...defaultSections(template.id),
       ...data.custom.map((c) => ({ key: `custom:${c.id}`, visible: true })),

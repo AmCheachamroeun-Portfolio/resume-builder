@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Field, Input, Select } from '@/components/ui/field';
+import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { SampleThumbnail } from '@/features/landing/previews';
 import { getTemplate } from '@/features/resume-templates/registry';
 import type { AiRequest, AiResponse } from '@/lib/ai/schemas';
@@ -64,9 +64,11 @@ export function Recommendations({
 export function RecommendPanel({
   useLabel,
   onUse,
+  onResult,
 }: {
   useLabel: string;
   onUse: (templateId: string, targetRole: string) => void;
+  onResult?: (result: AiResponse<'recommend-template'>, targetRole: string) => void;
 }) {
   const t = useTranslations('ai.recommend');
   const locale = useLocale() as ContentLanguage;
@@ -88,7 +90,9 @@ export function RecommendPanel({
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
-          void request.run(query);
+          void request.run(query).then((result) => {
+            if (result) onResult?.(result, query.targetRole);
+          });
         }}
       >
         <Field label={t('role')}>
@@ -142,6 +146,17 @@ export function RecommendPanel({
             </Select>
           )}
         </Field>
+        <Field label={t('requirements')} className="sm:col-span-2">
+          {(p) => (
+            <Textarea
+              {...p}
+              rows={3}
+              maxLength={4000}
+              value={query.requirements ?? ''}
+              onChange={(e) => set({ requirements: e.target.value })}
+            />
+          )}
+        </Field>
         {(['ats', 'photo'] as const).map((key) => (
           <label key={key} className="flex items-center gap-2 text-sm">
             <input
@@ -167,7 +182,12 @@ export function RecommendPanel({
         <AiStatusLine
           loading={request.loading}
           error={request.error}
-          onRetry={() => void request.retry()}
+          onRetry={() =>
+            void request.retry()?.then((result) => {
+              if (result) onResult?.(result, query.targetRole);
+            })
+          }
+          onCancel={request.reset}
         />
         {request.data && (
           <Recommendations

@@ -644,12 +644,8 @@
 }
 .rc-header-serif .rc-contacts {
   margin-top: 4px;
-  gap: 2px 0;
-}
-.rc-header-serif .rc-contact:not(:last-child)::after {
-  content: '·';
-  margin-inline: 9px;
-  color: var(--rc-accent-ink);
+  /* Space alone separates them: a drawn mark would dangle where the line wraps. */
+  gap: 2px 20px;
 }
 [data-template='elegant-serif'] .rc-title {
   font-weight: 600 !important;
@@ -719,12 +715,8 @@
   gap: 3px;
 }
 .rc-header-ats .rc-contacts {
+  gap: 3px 22px;
   color: var(--rc-ink);
-}
-.rc-header-ats .rc-contact:not(:last-child)::after {
-  content: '|';
-  margin-left: 11px;
-  color: #777;
 }
 [data-template='ats-essential'] {
   --rc-soft: #333;

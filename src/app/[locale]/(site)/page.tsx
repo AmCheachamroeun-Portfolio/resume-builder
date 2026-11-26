@@ -1,231 +1,236 @@
-import { ArrowRight, Check, ChevronDown, PenLine, Sparkles } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ArrowRight, Check } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
-import { use, type ReactNode } from 'react';
+import { use } from 'react';
 import { Button } from '@/components/ui/button';
-import { CustomiseDemo, HeroSheets, SampleThumbnail } from '@/features/landing/previews';
+import { HeroWindow } from '@/features/landing/hero-window';
+import { CustomiseDemo, SampleThumbnail } from '@/features/landing/previews';
 import { getTemplate } from '@/features/resume-templates/registry';
 import { Link } from '@/i18n/navigation';
-import { cn } from '@/lib/utils';
+import type { ContentLanguage } from '@/types/resume';
 
-const FEATURED = ['modern-slate', 'elegant-serif', 'corporate-edge', 'designer-profile'];
+const FEATURED = ['executive-classic', 'modern-slate', 'navy-professional', 'minimal-white'];
 
-function Section({
-  title,
-  intro,
-  children,
-  className,
-}: {
-  title: string;
-  intro?: string;
-  children: ReactNode;
-  className?: string;
-}) {
+function Showcase() {
+  const t = useTranslations('landing.showcase');
+  const locale = useLocale() as ContentLanguage;
   return (
-    <section className={cn('border-border border-t py-16', className)}>
+    <section className="py-16 sm:py-24" aria-labelledby="showcase-title">
       <div className="container-page">
-        <h2 className="display text-3xl">{title}</h2>
-        {intro && <p className="text-muted-foreground mt-2 max-w-2xl">{intro}</p>}
-        <div className="mt-8">{children}</div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 id="showcase-title" className="title-section">
+              {t('title')}
+            </h2>
+            <p className="text-muted-foreground mt-2 max-w-xl">{t('intro')}</p>
+          </div>
+          <Button asChild variant="link">
+            <Link href="/templates">
+              {t('all')}
+              <ArrowRight />
+            </Link>
+          </Button>
+        </div>
+        <ul className="-mx-5 mt-8 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+          {FEATURED.map((id) => {
+            const template = getTemplate(id);
+            return (
+              <li key={id} className="w-[72vw] shrink-0 snap-start sm:w-auto">
+                <Link href={`/builder?template=${id}`} className="group block rounded-lg">
+                  <span className="bg-desk block rounded-lg p-4 transition-colors">
+                    <SampleThumbnail
+                      templateId={id}
+                      className="shadow-paper transition-transform duration-200 group-hover:-translate-y-1"
+                    />
+                  </span>
+                  <span className="mt-3 block text-sm font-semibold">{template.name}</span>
+                  <span className="text-muted-foreground mt-0.5 block text-[13px] leading-snug">
+                    {template.description[locale]}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </section>
   );
 }
 
-function Checklist({ items }: { items: string[] }) {
+function Points({ items }: { items: string[] }) {
   return (
-    <ul className="space-y-3">
+    <ul className="mt-5 space-y-2.5 text-sm">
       {items.map((item) => (
-        <li key={item} className="flex gap-3">
-          <Check aria-hidden className="text-primary mt-1 size-4 shrink-0" />
-          <span>{item}</span>
+        <li key={item} className="flex gap-2.5">
+          <Check aria-hidden className="text-primary mt-0.5 size-4 shrink-0" />
+          {item}
         </li>
       ))}
     </ul>
   );
 }
 
-export default function HomePage({ params }: PageProps<'/[locale]'>) {
-  setRequestLocale(use(params).locale);
-  const t = useTranslations('landing');
-  const keys = (...names: string[]) => names;
-
+function Editing() {
+  const t = useTranslations('landing.editing');
   return (
-    <>
-      <section className="py-10 lg:py-14">
-        <div className="container-page grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
-          <div>
-            <p className="text-primary text-sm font-semibold">{t('hero.eyebrow')}</p>
-            <h1 className="display mt-3 text-4xl leading-[1.12] sm:text-5xl">{t('hero.title')}</h1>
-            <p className="text-muted-foreground mt-5 max-w-lg text-lg">{t('hero.body')}</p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button asChild variant="primary" size="lg">
-                <Link href="/builder">
-                  {t('hero.primary')}
-                  <ArrowRight />
-                </Link>
-              </Button>
-              <Button asChild size="lg">
-                <Link href="/templates">{t('hero.secondary')}</Link>
-              </Button>
-            </div>
-            <ul className="text-muted-foreground mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-              {keys('noAccount', 'onDevice', 'noWatermark').map((key) => (
-                <li key={key} className="flex items-center gap-1.5">
-                  <Check aria-hidden className="text-primary size-4" />
-                  {t(`hero.${key}`)}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <HeroSheets />
+    <section className="border-border border-t py-16 sm:py-24">
+      <div className="container-page grid items-center gap-10 lg:grid-cols-[2fr_3fr] lg:gap-16">
+        <div>
+          <h2 className="title-section">{t('title')}</h2>
+          <p className="text-muted-foreground mt-3">{t('body')}</p>
+          <Points items={['preview', 'order', 'undo'].map((key) => t(key))} />
         </div>
-      </section>
+        <CustomiseDemo />
+      </div>
+    </section>
+  );
+}
 
-      <Section title={t('featured.title')} intro={t('featured.intro')}>
-        <ul className="grid grid-cols-2 gap-x-5 gap-y-8 lg:grid-cols-4">
-          {FEATURED.map((id) => (
-            <li key={id}>
-              <Link
-                href={{ pathname: '/builder', query: { template: id } }}
-                className="group block"
-              >
-                <span className="bg-desk block rounded-md p-3 sm:p-4">
-                  <SampleThumbnail
-                    templateId={id}
-                    className="shadow-paper transition-transform group-hover:-translate-y-1"
-                  />
-                </span>
-                <span className="mt-3 block text-sm font-semibold">{getTemplate(id).name}</span>
-                <span className="text-primary text-sm group-hover:underline">
-                  {t('featured.use')}
-                </span>
-              </Link>
-            </li>
+function Writing() {
+  const t = useTranslations('landing.writing');
+  return (
+    <section className="bg-surface border-border border-y py-16 sm:py-24">
+      <div className="container-page">
+        <h2 className="title-section max-w-2xl">{t('title')}</h2>
+        <p className="text-muted-foreground mt-3 max-w-2xl">{t('body')}</p>
+        <dl className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-4">
+          {['rewrite', 'tailor', 'letter', 'import'].map((key) => (
+            <div key={key} className="border-foreground border-t py-4">
+              <dt className="text-sm font-semibold">{t(`items.${key}.title`)}</dt>
+              <dd className="text-muted-foreground mt-1.5 text-sm">{t(`items.${key}.body`)}</dd>
+            </div>
           ))}
-        </ul>
-        <Button asChild className="mt-8">
-          <Link href="/templates">
-            {t('featured.all')}
-            <ArrowRight />
-          </Link>
-        </Button>
-      </Section>
+        </dl>
+        <p className="text-muted-foreground mt-4 max-w-2xl text-[13px]">{t('rules')}</p>
+      </div>
+    </section>
+  );
+}
 
-      <Section title={t('how.title')} className="bg-surface">
-        <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {keys('choose', 'write', 'design', 'download').map((key, i) => (
-            <li key={key} className="border-foreground border-t-2 pt-4">
-              <span className="text-primary text-sm font-bold tabular-nums">{i + 1}</span>
-              <h3 className="mt-1 font-semibold">{t(`how.${key}.title`)}</h3>
-              <p className="text-muted-foreground mt-1.5 text-sm">{t(`how.${key}.body`)}</p>
+function Privacy() {
+  const t = useTranslations('landing.privacy');
+  const columns = [
+    { key: 'device', items: ['drafts', 'files', 'history', 'ats'] },
+    { key: 'sent', items: ['ask', 'only', 'excluded'] },
+  ];
+  return (
+    <section className="py-16 sm:py-24">
+      <div className="container-page grid gap-10 lg:grid-cols-[2fr_3fr] lg:gap-16">
+        <div>
+          <h2 className="title-section">{t('title')}</h2>
+          <p className="text-muted-foreground mt-3">{t('body')}</p>
+          <Button asChild variant="link" className="mt-3">
+            <Link href="/settings#privacy">
+              {t('more')}
+              <ArrowRight />
+            </Link>
+          </Button>
+        </div>
+        <div className="bg-surface border-border divide-border grid divide-y rounded-xl border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+          {columns.map(({ key, items }) => (
+            <div key={key} className="p-5">
+              <h3 className="text-sm font-semibold">{t(`${key}.title`)}</h3>
+              <ul className="text-muted-foreground mt-3 space-y-3 text-sm">
+                {items.map((item) => (
+                  <li key={item}>{t(`${key}.${item}`)}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Export() {
+  const t = useTranslations('landing.export');
+  return (
+    <section className="border-border border-t py-16 sm:py-24">
+      <div className="container-page grid items-center gap-10 lg:grid-cols-[3fr_2fr] lg:gap-16">
+        <div className="bg-desk order-2 flex h-80 justify-center overflow-hidden rounded-xl px-8 pt-8 lg:order-1">
+          <div className="w-full max-w-sm">
+            <SampleThumbnail templateId="ats-essential" className="shadow-paper" />
+          </div>
+        </div>
+        <div className="order-1 lg:order-2">
+          <h2 className="title-section">{t('title')}</h2>
+          <p className="text-muted-foreground mt-3">{t('body')}</p>
+          <Points items={['pdf', 'word', 'ats'].map((key) => t(key))} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Steps() {
+  const t = useTranslations('landing.steps');
+  return (
+    <section
+      id="how-it-works"
+      className="bg-surface border-border scroll-mt-14 border-y py-16 sm:py-20"
+    >
+      <div className="container-page">
+        <h2 className="title-section">{t('title')}</h2>
+        <ol className="mt-8 grid gap-8 md:grid-cols-3">
+          {['choose', 'add', 'download'].map((key, index) => (
+            <li key={key} className="border-border border-t pt-4">
+              <span className="text-primary text-sm font-semibold tabular-nums">{index + 1}</span>
+              <h3 className="title-panel mt-2">{t(`${key}.title`)}</h3>
+              <p className="text-muted-foreground mt-1.5 text-sm">{t(`${key}.body`)}</p>
             </li>
           ))}
         </ol>
-      </Section>
+      </div>
+    </section>
+  );
+}
 
-      <Section title={t('methods.title')} intro={t('methods.intro')}>
-        <div className="border-border bg-surface divide-border grid divide-y rounded-lg border md:grid-cols-2 md:divide-x md:divide-y-0">
-          {(
-            [
-              ['manual', '/templates', PenLine],
-              ['guided', '/builder/ai', Sparkles],
-            ] as const
-          ).map(([key, href, Icon]) => (
-            <div key={key} className="flex flex-col p-6 sm:p-8">
-              <Icon aria-hidden className="text-primary size-5" />
-              <h3 className="display mt-3 text-xl">{t(`methods.${key}.title`)}</h3>
-              <p className="text-muted-foreground mt-2 flex-1">{t(`methods.${key}.body`)}</p>
-              <Button asChild variant="link" className="mt-4 self-start">
-                <Link href={href}>
-                  {t(`methods.${key}.action`)}
-                  <ArrowRight />
-                </Link>
-              </Button>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title={t('customise.title')} intro={t('customise.intro')}>
-        <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.3fr]">
-          <Checklist
-            items={keys('type', 'layout', 'order', 'history').map((k) => t(`customise.${k}`))}
-          />
-          <CustomiseDemo />
-        </div>
-      </Section>
-
-      <Section title={t('assistant.title')} intro={t('assistant.intro')} className="bg-surface">
-        <div className="grid gap-10 md:grid-cols-2">
-          <dl className="divide-border border-border divide-y border-y">
-            {keys('summary', 'bullets', 'tailor', 'review').map((key) => (
-              <div key={key} className="py-4">
-                <dt className="font-semibold">{t(`assistant.${key}.title`)}</dt>
-                <dd className="text-muted-foreground mt-1 text-sm">{t(`assistant.${key}.body`)}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="bg-primary-soft self-start rounded-lg p-6 sm:p-8">
-            <h3 className="display text-xl">{t('assistant.rulesTitle')}</h3>
-            <div className="mt-4 text-sm">
-              <Checklist
-                items={keys('invent', 'approve', 'consent', 'optional').map((k) =>
-                  t(`assistant.rules.${k}`),
-                )}
-              />
-            </div>
+function Home() {
+  const t = useTranslations('landing');
+  return (
+    <>
+      <section className="pt-14 pb-4 sm:pt-20">
+        <div className="container-page text-center">
+          <h1 className="title-hero mx-auto max-w-3xl">{t('hero.title')}</h1>
+          <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-[17px] leading-relaxed">
+            {t('hero.body')}
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <Button asChild variant="primary" size="lg">
+              <Link href="/builder">{t('hero.primary')}</Link>
+            </Button>
+            <Button asChild size="lg">
+              <Link href="/templates">{t('hero.secondary')}</Link>
+            </Button>
+          </div>
+          <p className="text-muted-foreground mt-4 text-[13px]">{t('hero.note')}</p>
+          <div className="mx-auto mt-10 max-w-6xl">
+            <HeroWindow />
           </div>
         </div>
-      </Section>
-
-      <Section title={t('ats.title')} intro={t('ats.intro')}>
-        <div className="grid items-center gap-10 md:grid-cols-[minmax(0,20rem)_1fr]">
-          <div className="bg-desk rounded-lg p-5">
-            <SampleThumbnail templateId="ats-essential" className="shadow-paper" />
-          </div>
-          <div>
-            <Checklist
-              items={keys('column', 'headings', 'text', 'check').map((k) => t(`ats.${k}`))}
-            />
-            <p className="border-warning bg-warning-soft mt-6 border-l-2 px-4 py-3 text-sm">
-              {t('ats.disclaimer')}
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      <Section title={t('faq.title')} className="bg-surface">
-        <div className="border-border divide-border max-w-3xl divide-y border-y">
-          {keys('free', 'storage', 'devices', 'pdf', 'ai', 'khmer').map((key) => (
-            <details key={key} className="group">
-              <summary className="flex items-center justify-between gap-4 py-4 font-medium [&::-webkit-details-marker]:hidden">
-                {t(`faq.${key}.q`)}
-                <ChevronDown
-                  aria-hidden
-                  className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
-                />
-              </summary>
-              <p className="text-muted-foreground pb-5">{t(`faq.${key}.a`)}</p>
-            </details>
-          ))}
-        </div>
-      </Section>
-
-      <section className="bg-primary text-primary-foreground py-14">
-        <div className="container-page flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <h2 className="display text-3xl">{t('final.title')}</h2>
-            <p className="mt-2 opacity-90">{t('final.body')}</p>
-          </div>
-          <Button asChild size="lg">
-            <Link href="/builder">
-              {t('hero.primary')}
-              <ArrowRight />
-            </Link>
+      </section>
+      <Showcase />
+      <Editing />
+      <Writing />
+      <Privacy />
+      <Export />
+      <Steps />
+      <section className="py-20 text-center sm:py-24">
+        <div className="container-page">
+          <h2 className="title-section">{t('final.title')}</h2>
+          <p className="text-muted-foreground mx-auto mt-3 max-w-md">{t('final.body')}</p>
+          <Button asChild variant="primary" size="lg" className="mt-6">
+            <Link href="/builder">{t('hero.primary')}</Link>
           </Button>
         </div>
       </section>
     </>
   );
+}
+
+export default function HomePage({ params }: PageProps<'/[locale]'>) {
+  const { locale } = use(params);
+  setRequestLocale(locale);
+  return <Home />;
 }

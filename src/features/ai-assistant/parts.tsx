@@ -42,14 +42,19 @@ export function AiGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** Failures that trying again cannot fix. */
+const NO_RETRY = ['not-configured', 'invalid-key', 'model-unavailable', 'daily-limit'];
+
 export function AiStatusLine({
   loading,
   error,
   onRetry,
+  onCancel,
 }: {
   loading: boolean;
   error: AiErrorCode | null;
   onRetry: () => void;
+  onCancel?: () => void;
 }) {
   const t = useTranslations('ai');
   if (loading) {
@@ -59,8 +64,13 @@ export function AiStatusLine({
           <LoaderCircle aria-hidden className="size-4 animate-spin" />
           {t('working')}
         </p>
-        <div className="bg-muted h-3 w-full rounded-sm" />
-        <div className="bg-muted h-3 w-4/5 rounded-sm" />
+        <div className="skeleton h-3 w-full rounded-sm" />
+        <div className="skeleton h-3 w-4/5 rounded-sm" />
+        {onCancel && (
+          <Button size="sm" onClick={onCancel}>
+            {t('cancelRequest')}
+          </Button>
+        )}
       </div>
     );
   }
@@ -68,7 +78,7 @@ export function AiStatusLine({
   return (
     <div role="alert" className="bg-danger-soft text-danger rounded-md p-3 text-sm">
       <p>{t(`errors.${error}`)}</p>
-      {!['not-configured', 'daily-limit'].includes(error) && (
+      {!NO_RETRY.includes(error) && (
         <Button size="sm" className="mt-2" onClick={onRetry}>
           <RefreshCw />
           {t('retry')}
@@ -89,7 +99,10 @@ export function Suggestion({
   onAccept,
   onReject,
   onRegenerate,
+  note,
 }: {
+  /** A warning shown above the actions. */
+  note?: string;
   label?: string;
   original: string;
   suggested: string;
@@ -122,6 +135,7 @@ export function Suggestion({
             <p className="bg-primary-soft rounded-sm p-2 whitespace-pre-wrap">{draft}</p>
           )}
         </div>
+        {note && <p className="bg-warning-soft text-warning rounded-sm p-2 text-xs">{note}</p>}
       </div>
       <div className="border-border flex flex-wrap gap-1.5 border-t p-2">
         <Button

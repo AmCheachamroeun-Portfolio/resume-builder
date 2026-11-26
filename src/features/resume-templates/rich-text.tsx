@@ -55,7 +55,7 @@ export function parseRich(source: string): RichLine[] {
   });
 }
 
-const INLINE = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\[[^\]]+\]\([^)\s]+\))/g;
+export const INLINE = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\[[^\]]+\]\([^)\s]+\))/g;
 
 export function renderInline(text: string): ReactNode {
   return text.split(INLINE).map((part, index) => {

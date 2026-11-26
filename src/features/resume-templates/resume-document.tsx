@@ -238,6 +238,12 @@ export const ResumeDocument = memo(function ResumeDocument({
 
   // Re-measure when web fonts arrive, since they change line heights and wrapping.
   useEffect(() => {
+    const done = () => setFontsTick((n) => n + 1);
+    document.fonts.addEventListener('loadingdone', done);
+    return () => document.fonts.removeEventListener('loadingdone', done);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     const family = RESUME_FONTS[resume.design.font].family;
     const text = JSON.stringify(resume.data).slice(0, 20000);
@@ -245,14 +251,13 @@ export const ResumeDocument = memo(function ResumeDocument({
       `${weight} 12px "${family}"`,
       `${weight} 12px "Noto Sans Khmer"`,
     ]);
+    // Typing with fonts that are already there needs no second measurement.
+    if (specs.every((spec) => document.fonts.check(spec, text))) return;
     Promise.all(specs.map((spec) => document.fonts.load(spec, text).catch(() => [])))
       .then(() => document.fonts.ready)
       .then(() => !cancelled && setFontsTick((n) => n + 1));
-    const done = () => setFontsTick((n) => n + 1);
-    document.fonts.addEventListener('loadingdone', done);
     return () => {
       cancelled = true;
-      document.fonts.removeEventListener('loadingdone', done);
     };
   }, [resume.design.font, resume.data]);
 

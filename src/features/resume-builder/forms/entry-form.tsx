@@ -6,8 +6,7 @@ import { useEffect, useMemo } from 'react';
 import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form';
 import { Field, Input, Select } from '@/components/ui/field';
 import { SECTION_FIELDS } from '@/constants/sections';
-import { useAssistant } from '@/features/ai-assistant/store';
-import { actions } from '@/stores/editor-store';
+import { actions, useEditor } from '@/stores/editor-store';
 import type { ListEntry, ListSectionKey } from '@/types/resume';
 import { entryFormSchema } from './form-schemas';
 import { DateInput, RichInput } from './inputs';
@@ -24,7 +23,7 @@ export function EntryForm({ section, entry }: { section: ListSectionKey; entry: 
   const t = useTranslations('form');
   const labels = useTranslations('fields');
   const options = useTranslations('options');
-  const openAssistant = useAssistant((s) => s.openFor);
+  const language = useEditor((s) => s.resume?.language ?? 'en');
   const resolver = useMemo(
     () => zodResolver(entryFormSchema(section)) as unknown as Resolver<Values>,
     [section],
@@ -47,12 +46,12 @@ export function EntryForm({ section, entry }: { section: ListSectionKey; entry: 
     actions.updateEntry(section, entry.id, { [name]: value } as Partial<ListEntry>);
 
   return (
-    <form className="grid gap-4 sm:grid-cols-2" noValidate onSubmit={(e) => e.preventDefault()}>
+    <form className="grid gap-4 @md:grid-cols-2" noValidate onSubmit={(e) => e.preventDefault()}>
       {SECTION_FIELDS[section].map((field) => {
         const label = labels(`${section}.${field.name}`);
         const message = form.formState.errors[field.name]?.message;
         const error = typeof message === 'string' ? t(`errors.${message}`) : undefined;
-        const wide = field.wide ? 'sm:col-span-2' : '';
+        const wide = field.wide ? '@md:col-span-2' : '';
 
         return (
           <Controller
@@ -97,17 +96,16 @@ export function EntryForm({ section, entry }: { section: ListSectionKey; entry: 
               }
               if (field.type === 'rich') {
                 const assist = AI_FIELDS[section]?.includes(field.name);
+                const role = entry as { title?: string; role?: string; name?: string };
                 return (
                   <div className={wide}>
                     <RichInput
                       label={label}
                       value={text}
                       onChange={update}
-                      assistLabel={t('improve')}
-                      onAssist={
+                      assist={
                         assist
-                          ? () =>
-                              openAssistant('improve', { section, id: entry.id, field: field.name })
+                          ? { role: role.title || role.role || role.name || '', language }
                           : undefined
                       }
                     />

@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ImagePlus, Plus, Trash2, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
@@ -103,19 +103,20 @@ export function PersonalForm({ resume }: { resume: Resume }) {
         </div>
       </div>
 
-      <form className="grid gap-4 sm:grid-cols-2" noValidate onSubmit={(e) => e.preventDefault()}>
+      <form className="grid gap-4 @md:grid-cols-2" noValidate onSubmit={(e) => e.preventDefault()}>
         {FIELDS.map(([name, type, autoComplete]) => {
           const message = form.formState.errors[name]?.message;
-          return (
+          const group = name === 'email' ? 'contact' : name === 'linkedin' ? 'online' : null;
+          const field = (
             <Field
-              key={name}
               label={labels(name)}
               error={message ? t(`errors.${message}`) : undefined}
-              className={name === 'fullName' || name === 'headline' ? 'sm:col-span-2' : ''}
+              className={name === 'fullName' || name === 'headline' ? '@md:col-span-2' : ''}
             >
               {(props) => (
                 <Input
                   {...props}
+                  data-entry={`personal.${name}`}
                   type={type}
                   autoComplete={autoComplete}
                   maxLength={300}
@@ -126,11 +127,21 @@ export function PersonalForm({ resume }: { resume: Resume }) {
               )}
             </Field>
           );
+          return (
+            <Fragment key={name}>
+              {group && (
+                <h3 className="label-small border-border mt-2 border-t pt-4 @md:col-span-2">
+                  {labels(`groups.${group}`)}
+                </h3>
+              )}
+              {field}
+            </Fragment>
+          );
         })}
       </form>
 
       <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold">{labels('links')}</legend>
+        <legend className="label-small">{labels('links')}</legend>
         {personal.links.map((link, index) => {
           const patch = (change: Partial<typeof link>) =>
             setLinks(personal.links.map((l) => (l.id === link.id ? { ...l, ...change } : l)));

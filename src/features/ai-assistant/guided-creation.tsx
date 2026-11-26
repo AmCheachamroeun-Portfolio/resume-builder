@@ -205,7 +205,7 @@ export function GuidedCreation() {
 
   return (
     <div className="container-page max-w-3xl py-10">
-      <h1 className="display text-3xl sm:text-4xl">{t('title')}</h1>
+      <h1 className="title-page">{t('title')}</h1>
       <p className="text-muted-foreground mt-2">{t('intro')}</p>
       {configured === false && (
         <div role="status" className="bg-warning-soft text-warning mt-4 rounded-md p-4 text-sm">
@@ -243,7 +243,7 @@ export function GuidedCreation() {
             if (canContinue) setStep(step + 1);
           }}
         >
-          <h2 ref={heading} tabIndex={-1} className="display text-xl outline-none">
+          <h2 ref={heading} tabIndex={-1} className="title-panel outline-none">
             {t(`questions.${question}.title`)}
           </h2>
           <p className="text-muted-foreground mt-1 mb-4 text-sm">
@@ -380,7 +380,7 @@ export function GuidedCreation() {
         </form>
       ) : (
         <div className="mt-4 space-y-6">
-          <h2 ref={heading} tabIndex={-1} className="display text-xl outline-none">
+          <h2 ref={heading} tabIndex={-1} className="title-panel outline-none">
             {t('reviewTitle')}
           </h2>
           <AiGate>
@@ -400,6 +400,7 @@ export function GuidedCreation() {
                 loading={recommendRequest.loading}
                 error={recommendRequest.error}
                 onRetry={() => void recommendRequest.retry()}
+                onCancel={recommendRequest.reset}
               />
               {recommendRequest.data && (
                 <Recommendations
@@ -416,6 +417,7 @@ export function GuidedCreation() {
               loading={draftRequest.loading}
               error={draftRequest.error}
               onRetry={() => void draftRequest.retry()?.then((r) => r && setDraft(r))}
+              onCancel={draftRequest.reset}
             />
             {draft && (
               <>
