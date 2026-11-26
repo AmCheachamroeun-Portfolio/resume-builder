@@ -361,7 +361,7 @@ describe('privacy and injection handling', () => {
     resume.sections = resume.sections.map((s) =>
       s.key === 'education' ? { ...s, visible: false } : s,
     );
-    expect(resumeContext(resume)).not.toContain('Sample Institute');
+    expect(resumeContext(resume)).not.toContain('Banyan Institute');
   });
 
   it('keeps untrusted text inside its data block', () => {

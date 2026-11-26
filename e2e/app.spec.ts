@@ -95,15 +95,15 @@ test('reorders and hides sections, by button and by keyboard', async ({ page }) 
   await expect.poll(() => sectionRows(page)).toEqual(before);
 
   const pages = preview(page);
-  await expect(pages.first()).toContainText('Sample Institute');
+  await expect(pages.first()).toContainText('Banyan Institute');
   const education = page.locator('[data-section-row="education"]');
   await education.hover();
   await education.getByRole('button', { name: /^Hide / }).click();
-  await expect(pages.filter({ hasText: 'Sample Institute' })).toHaveCount(0);
+  await expect(pages.filter({ hasText: 'Banyan Institute' })).toHaveCount(0);
   await saved(page);
   await page.reload();
   await expect(preview(page).first()).toBeVisible();
-  await expect(preview(page).filter({ hasText: 'Sample Institute' })).toHaveCount(0);
+  await expect(preview(page).filter({ hasText: 'Banyan Institute' })).toHaveCount(0);
 });
 
 test('undoes typing with the keyboard', async ({ page }) => {

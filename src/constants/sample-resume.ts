@@ -46,7 +46,7 @@ export const SAMPLE_DATA: ResumeData = resumeDataSchema.parse({
   education: [
     {
       id: 'e1',
-      institution: 'Sample Institute of Technology',
+      institution: 'Banyan Institute of Technology',
       degree: 'Bachelor of Science',
       field: 'Software Engineering',
       start: '2018-10',
@@ -78,7 +78,7 @@ export const SAMPLE_DATA: ResumeData = resumeDataSchema.parse({
     {
       id: 'c1',
       name: 'Web Accessibility Foundations',
-      issuer: 'Sample Learning Centre',
+      issuer: 'Banyan Learning Centre',
       issued: '2023-11',
     },
   ],

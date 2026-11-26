@@ -14,41 +14,53 @@ A resume and cover letter builder that keeps your documents in your own browser.
 
 **Live demo:** not deployed yet.
 
-![A short recording: typing a headline, changing the template, opening the design panel and the export window](docs/screenshots/demo.gif)
+![ResumeCraft: the editor beside two finished resume layouts](docs/portfolio/covers/resumecraft-cover-dark.webp)
+
+## Demo
+
+![Typing a headline, changing the accent colour and switching resume templates](docs/portfolio/demo/resumecraft-demo.gif)
+
+[Watch the 44-second video](docs/portfolio/demo/resumecraft-demo.mp4) (no sound): templates, editing, design changes, cover letters and PDF export.
 
 ## Screenshots
 
-Taken from the running app. All people, companies and schools shown are fictional. No Gemini key was set, so AI panels show their "not available" state and no AI output appears.
+Captured from the app running locally in Chrome. All people, companies, schools and contact details are fictional. Gemini could not be reached, so no AI output appears.
 
-![The editor: section list, form and live preview](docs/screenshots/editor.png)
+![The editor: section list, form and live preview](docs/portfolio/screenshots/03-resume-editor.webp)
 
-| Landing page                               | Template gallery                                    |
-| ------------------------------------------ | --------------------------------------------------- |
-| ![Landing page](docs/screenshots/home.png) | ![Template gallery](docs/screenshots/templates.png) |
+| Landing page                                                     | Template gallery                                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ![Landing page](docs/portfolio/screenshots/01-landing-page.webp) | ![Template gallery](docs/portfolio/screenshots/02-template-gallery.webp) |
 
-| My resumes                                      | Export                                        |
-| ----------------------------------------------- | --------------------------------------------- |
-| ![Resume library](docs/screenshots/resumes.png) | ![Export window](docs/screenshots/export.png) |
+| Design panel                                                      | Dark theme (the resume keeps its own colours)                           |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| ![Design panel](docs/portfolio/screenshots/05-customization.webp) | ![Editor in dark theme](docs/portfolio/screenshots/04-editor-dark.webp) |
 
-| Job matching in the assistant                                   | Compatibility check                                        |
-| --------------------------------------------------------------- | ---------------------------------------------------------- |
-| ![On-device keyword comparison](docs/screenshots/assistant.png) | ![ATS compatibility check](docs/screenshots/ats-check.png) |
+| Compatibility check and keyword comparison                              | Assistant before any request is sent[^ai]                           |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| ![On-device ATS check](docs/portfolio/screenshots/07-ats-analysis.webp) | ![Assistant panel](docs/portfolio/screenshots/06-ai-assistant.webp) |
 
-| Cover letters                                        | Dark theme (the resume keeps its own colours)             |
-| ---------------------------------------------------- | --------------------------------------------------------- |
-| ![Cover letter editor](docs/screenshots/letters.png) | ![Editor in dark theme](docs/screenshots/editor-dark.png) |
+| Cover letter editor                                                     | Cover letter templates                                                                     |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| ![Cover letter editor](docs/portfolio/screenshots/09-cover-letter.webp) | ![Three cover letter templates](docs/portfolio/screenshots/10-cover-letter-templates.webp) |
 
-**Khmer interface and Khmer resume text:**
+| My resumes                                                       | Version history                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| ![Resume library](docs/portfolio/screenshots/08-my-resumes.webp) | ![Version history](docs/portfolio/screenshots/13-version-history.webp) |
 
-![The editor in Khmer](docs/screenshots/khmer.png)
+| PDF export                                                      | Khmer interface and resume                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| ![Export window](docs/portfolio/screenshots/12-pdf-export.webp) | ![The editor in Khmer](docs/portfolio/screenshots/11-khmer-resume.webp) |
 
-**On a phone** the editor becomes four views: Sections, Edit, Design and Preview.
+**On a phone:**
 
-![Four phone screens of the editor](docs/screenshots/mobile.png)
+| Home                                                            | Templates                                                                | Editor                                                      | Preview                                                       |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| ![Phone landing page](docs/portfolio/mobile/01-mobile-home.png) | ![Phone template gallery](docs/portfolio/mobile/02-mobile-templates.png) | ![Phone editor](docs/portfolio/mobile/03-mobile-editor.png) | ![Phone preview](docs/portfolio/mobile/04-mobile-preview.png) |
 
-**Exported PDFs**, including Khmer:
+Covers, captions and descriptions for a portfolio are in [docs/portfolio/PORTFOLIO.md](docs/portfolio/PORTFOLIO.md).
 
-![Three exported PDF pages](docs/screenshots/pdf-export.png)
+[^ai]: Taken with a fake placeholder key so the panel shows its ready state. Nothing was sent to Google.
 
 <details>
 <summary><strong>Before and after the redesign</strong></summary>
