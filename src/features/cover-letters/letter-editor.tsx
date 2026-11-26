@@ -17,6 +17,7 @@ import { letterSource, useLetter } from '@/stores/letter-store';
 import { LETTER_LIMITS, LETTER_TONES, type CoverLetter } from '@/types/cover-letter';
 import { DraftPanel } from './draft-panel';
 import { LetterPreview } from './letter-preview';
+import { TemplateChooser } from './template-chooser';
 
 const LetterExport = dynamic(() => import('./letter-export'), { ssr: false });
 
@@ -87,6 +88,8 @@ function Form({ letter }: { letter: CoverLetter }) {
 
   return (
     <div className="space-y-6">
+      <TemplateChooser letter={letter} />
+
       <section aria-labelledby="job-title" className="space-y-4">
         <h2 id="job-title" className="title-panel">
           {t('about')}

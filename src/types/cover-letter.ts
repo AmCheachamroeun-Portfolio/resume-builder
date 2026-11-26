@@ -1,9 +1,14 @@
 import { z } from 'zod';
+import { FONT_IDS } from './resume';
 
 const short = z.string().max(300).default('');
 
 export const LETTER_TONES = ['professional', 'warm', 'direct'] as const;
 export const LETTER_LIMITS = { body: 8000, jobDescription: 8000 } as const;
+export const LETTER_TEMPLATE_IDS = ['classic', 'modern', 'minimal'] as const;
+export const LETTER_ACCENT = '#1d3557';
+
+const font = z.enum(FONT_IDS).optional().catch(undefined);
 
 export const coverLetterSchema = z.object({
   id: z.string().min(1).max(64),
@@ -27,8 +32,22 @@ export const coverLetterSchema = z.object({
     .default(''),
   body: z.string().max(LETTER_LIMITS.body).default(''),
   pageSize: z.enum(['a4', 'letter']).default('a4'),
+  /*
+   * The look. Letters saved before templates existed have none of these and open
+   * as "minimal", which is how they already appeared. An unreadable value falls
+   * back too, because styling must never make a letter's text unreachable.
+   */
+  template: z.enum(LETTER_TEMPLATE_IDS).default('minimal').catch('minimal'),
+  accent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .default(LETTER_ACCENT)
+    .catch(LETTER_ACCENT),
+  /** Typeface chosen for each template, so switching back restores the choice. */
+  fonts: z.object({ classic: font, modern: font, minimal: font }).prefault({}).catch({}),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
 });
 
 export type CoverLetter = z.infer<typeof coverLetterSchema>;
+export type LetterTemplateId = (typeof LETTER_TEMPLATE_IDS)[number];

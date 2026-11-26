@@ -83,7 +83,7 @@ The audit behind the redesign is in [docs/redesign-audit.md](docs/redesign-audit
 
 **Applications**
 
-- Cover letters that copy your name and contact details from a resume, with live preview and PDF or editable Word export
+- Cover letters that copy your name and contact details from a resume, in three templates (Classic Professional, Modern Executive, Minimal Elegant) with typeface choices, an accent colour for Modern Executive, a paged live preview, and PDF or editable Word export
 - Job matching: compare a resume with an advert on your device, then (optionally) review suggested rewrites one by one and save them as a **new copy**
 - A compatibility check that lists what to fix and takes you to the place. It works without AI.
 

@@ -1360,6 +1360,16 @@
       "storageTitle": "Browser storage is not available",
       "storageBody": "Check that this browser allows the site to store data, then reload."
     },
+    "design": {
+      "title": "Template",
+      "typeface": "Typeface",
+      "accent": "Accent colour",
+      "about": {
+        "classic": "Centred serif letterhead in black and white. For banking, corporate and other formal applications.",
+        "modern": "Two-column header with your accent colour and fine dividers. For technology, business and management roles.",
+        "minimal": "Quiet, open layout with a single hairline. For developers, designers and creative work."
+      }
+    },
     "saveProblem": {
       "error": "Your latest changes are not saved yet. Browser storage refused the write. It will be tried again.",
       "conflict": "This letter was changed somewhere else, for example in another tab. Nothing has been overwritten. Choose which version to continue with.",

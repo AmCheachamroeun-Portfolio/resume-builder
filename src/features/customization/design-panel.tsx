@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState, type CSSProperties, type ReactNode } from 'react';
+import { Swatches } from '@/components/shared/swatches';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Segmented, Select, Switch } from '@/components/ui/field';
 import { ACCENT_COLOURS } from '@/constants/design';
@@ -45,45 +46,6 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
         {children}
       </div>
     </details>
-  );
-}
-
-function Swatches({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-}) {
-  const t = useTranslations('design');
-  return (
-    <div>
-      <p className="mb-2 text-[13px] font-medium">{label}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-label={`${label} ${option}`}
-            aria-pressed={option === value}
-            onClick={() => onChange(option)}
-            className="aria-pressed:ring-foreground aria-pressed:ring-offset-background size-7 rounded-sm border border-black/15 aria-pressed:ring-2 aria-pressed:ring-offset-2"
-            style={{ background: option }}
-          />
-        ))}
-        <input
-          type="color"
-          aria-label={t('customColour', { label })}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="border-border h-8 w-10 cursor-pointer rounded-sm border bg-transparent p-0.5"
-        />
-      </div>
-    </div>
   );
 }
 

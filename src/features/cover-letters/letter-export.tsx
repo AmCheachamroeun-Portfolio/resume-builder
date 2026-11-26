@@ -10,7 +10,8 @@ import { Dialog } from '@/components/ui/overlays';
 import { detectBrowser, PRINT_BROWSERS, type PrintBrowser } from '@/features/pdf-export/browser';
 import { downloadFile, safeFileName } from '@/lib/utils';
 import type { CoverLetter } from '@/types/cover-letter';
-import { LETTER_MARGIN, LetterDocument } from './letter-document';
+import { LetterDocument } from './letter-document';
+import { LETTER_TEMPLATES } from './templates';
 
 export default function LetterExport({
   letter,
@@ -44,7 +45,7 @@ export default function LetterExport({
       onClose();
       await printFlow((ready) => <LetterDocument letter={letter} onReady={ready} />, {
         pageSize: letter.pageSize,
-        margin: LETTER_MARGIN,
+        margin: `${LETTER_TEMPLATES[letter.template].margin}mm`,
         fileName: safeFileName(name),
       });
     } catch {
