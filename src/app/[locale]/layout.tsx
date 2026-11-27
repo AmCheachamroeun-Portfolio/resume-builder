@@ -4,6 +4,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ThemeScript } from '@/components/layout/theme-script';
 import { AppToaster } from '@/components/shared/toaster';
+import { ApiKeyHost } from '@/features/ai-assistant/api-key-host';
 import { routing } from '@/i18n/routing';
 import '../fonts.css';
 import '../globals.css';
@@ -44,6 +45,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <ThemeScript />
         <NextIntlClientProvider>
           {children}
+          <ApiKeyHost />
           <AppToaster />
         </NextIntlClientProvider>
       </body>

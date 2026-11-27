@@ -265,21 +265,21 @@ test('adds a photo and refuses unsupported files', async ({ page }) => {
   expect(size[0]).toBe(size[1]);
 });
 
-test('says plainly that AI is unavailable without a key, and still checks compatibility', async ({
-  page,
-}) => {
+test('refuses AI requests without a key, and still checks compatibility', async ({ page }) => {
   await createExample(page);
   await page.getByRole('button', { name: 'Assistant' }).click();
-  await expect(page.getByText('AI features are not available')).toBeVisible();
   await page.getByLabel('What do you want help with?').selectOption('ats');
   await expect(page.getByTestId('ats-score')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Close assistant' }).click();
   await expect(page.getByTestId('ats-score')).toHaveCount(0);
 
+  // The server has no key of its own, so a request without one goes nowhere.
   const response = await page.request.post('/api/ai/chat', {
     data: { language: 'en', messages: [{ role: 'user', text: 'Hi' }] },
   });
-  expect(response.status()).toBe(503);
+  expect(response.status()).toBe(401);
+  expect(await response.json()).toEqual({ error: 'missing-key' });
 });
 
 test('translates the interface to Khmer but never the resume', async ({ page }) => {
@@ -365,14 +365,15 @@ test('leaves a field’s own undo alone outside the resume forms', async ({ page
   await expect(name(page)).toHaveValue('Changed Name');
 });
 
-test('writing help appears under the field and explains when AI is unavailable', async ({
+test('writing help appears under the field and asks for consent before anything', async ({
   page,
 }) => {
   await createExample(page);
   await page.locator('[data-section-row="summary"] button', { hasText: 'Summary' }).click();
   await page.getByRole('button', { name: 'Writing help for Professional summary' }).click();
   await page.getByRole('menuitem', { name: 'Make concise' }).click();
-  await expect(page.getByText('AI features are not available')).toBeVisible();
+  await expect(page.getByText('Before anything is sent')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('a second tab cannot silently overwrite or revive a resume', async ({ page, context }) => {

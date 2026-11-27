@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { Document, Packer, Paragraph } from 'docx';
-import { preview } from './helpers';
+import { preview, withKey } from './helpers';
 
 /* Fictional content, turned into real PDF and Word files. */
 const LINES = [
@@ -72,10 +72,8 @@ test('imports a PDF on the device, after review, as a new resume', async ({ page
 
 test('reads a Word file and sends only redacted text to Gemini after consent', async ({ page }) => {
   const requests: { text: string }[] = [];
+  await withKey(page);
   await page.route('**/api/ai/**', async (route) => {
-    if (route.request().url().endsWith('/status')) {
-      return route.fulfill({ json: { configured: true } });
-    }
     requests.push(route.request().postDataJSON());
     return route.fulfill({
       json: {

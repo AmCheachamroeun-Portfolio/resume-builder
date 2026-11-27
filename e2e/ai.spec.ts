@@ -1,16 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
 import { SAMPLE_DATA } from '../src/constants/sample-resume';
-import { createExample, preview, saved } from './helpers';
+import { createExample, preview, saved, withKey } from './helpers';
 
 /**
- * The browser side of every AI flow, with the two API routes replaced by fixed
+ * The browser side of every AI flow, with the API routes replaced by fixed
  * answers. Gemini is never contacted.
  */
 async function mockAi(page: Page, answers: Record<string, unknown>) {
+  await withKey(page);
   const requests: { action: string; body: Record<string, unknown> }[] = [];
   await page.route('**/api/ai/**', async (route) => {
     const action = new URL(route.request().url()).pathname.split('/').pop()!;
-    if (action === 'status') return route.fulfill({ json: { configured: true } });
     requests.push({ action, body: route.request().postDataJSON() });
     const answer = answers[action];
     if (typeof answer === 'number') {
@@ -96,7 +96,7 @@ test('rewrites one description and shows failures with a retry', async ({ page }
   await openTask(page, 'improve');
   await agree(page);
   await page.getByRole('button', { name: 'Suggest a change' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'usage limit' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'quota or rate limit' })).toBeVisible();
 
   answers['improve-experience'] = { text: '- Delivered reusable components', changes: ['Verb'] };
   await page.getByRole('button', { name: 'Try again' }).click();

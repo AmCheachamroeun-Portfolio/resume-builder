@@ -50,4 +50,15 @@ export async function printFromEditor(page: Page) {
   await page.waitForFunction(() => window.__printed);
 }
 
+/** Shaped like a key, and obviously not one. */
+export const TEST_KEY = 'test-key-not-real-0000000000';
+
+/** Starts the browser with a saved Gemini key, as a returning visitor would. */
+export async function withKey(page: Page) {
+  await page.addInitScript(
+    (key) => localStorage.setItem('resumecraft:gemini-api-key', key),
+    TEST_KEY,
+  );
+}
+
 export const preview = (page: Page) => page.locator('[data-preview-page]');

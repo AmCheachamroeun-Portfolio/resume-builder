@@ -208,7 +208,7 @@ export type AiResponse<A extends AiAction> = z.infer<(typeof AI_RESPONSES)[A]>;
 export type Draft = AiResponse<'generate-draft'> & { removed?: string[] };
 
 export const AI_ERROR_CODES = [
-  'not-configured',
+  'missing-key',
   'invalid-key',
   'model-unavailable',
   'cancelled',

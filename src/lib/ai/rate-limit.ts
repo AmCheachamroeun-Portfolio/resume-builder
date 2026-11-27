@@ -38,7 +38,7 @@ export async function isAllowed(request: Request) {
     if (error === 'not-found') console.warn('[ai] firewall rate-limit rule was not found');
     return !rateLimited;
   } catch {
-    // Fail closed: an unreachable limiter must not expose the API key to abuse.
+    // Fail closed: an unreachable limiter must not leave these routes open to abuse.
     return false;
   }
 }

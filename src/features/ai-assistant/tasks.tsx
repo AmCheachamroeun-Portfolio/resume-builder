@@ -12,6 +12,7 @@ import type { ListEntry, Resume } from '@/types/resume';
 import { useAiRequest } from './client';
 import { resumeContext } from './context';
 import { AiStatusLine, Bullets, Suggestion } from './parts';
+import { ensureApiKey } from './api-key';
 import { useAssistant, type ImproveTarget } from './store';
 
 const Note = ({ children }: { children: ReactNode }) => (
@@ -57,6 +58,8 @@ export function ChatTask({
   const send = async (text: string) => {
     const question = text.trim();
     if (!question || request.loading) return;
+    // Asked first, so the question stays in the box if setup is closed.
+    if (!(await ensureApiKey())) return;
     const next: Message[] = [...messages, { role: 'user', text: question.slice(0, 4000) }];
     setMessages(next);
     setInput('');

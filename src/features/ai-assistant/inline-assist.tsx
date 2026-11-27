@@ -91,7 +91,7 @@ export function InlineAssist(props: Props) {
           <X />
         </Button>
       </div>
-      <AiGate>
+      <AiGate prompt blocking>
         <Request {...props} />
       </AiGate>
     </section>

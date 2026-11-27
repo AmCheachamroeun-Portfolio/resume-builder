@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { FileDown, Trash2, Upload } from 'lucide-react';
+import { FileDown, KeyRound, Trash2, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -9,7 +9,13 @@ import { LOCALE_NAMES, useSwitchLocale } from '@/components/layout/preferences';
 import { Button } from '@/components/ui/button';
 import { Segmented } from '@/components/ui/field';
 import { ConfirmDialog } from '@/components/ui/overlays';
-import { revokeConsent, useAiStatus, useConsent } from '@/features/ai-assistant/client';
+import {
+  refreshApiKey,
+  removeApiKey,
+  requestApiKey,
+  useApiKeyHint,
+} from '@/features/ai-assistant/api-key';
+import { revokeConsent, useConsent } from '@/features/ai-assistant/client';
 import { routing, type Locale } from '@/i18n/routing';
 import { db, deleteAllData } from '@/lib/storage/db';
 import { setTheme, useTheme, type Theme } from '@/lib/theme';
@@ -37,8 +43,10 @@ export function SettingsPanel() {
   const count = useLiveQuery(() => db.resumes.count().catch(() => 0));
   const letters = useLiveQuery(() => db.letters.count().catch(() => 0));
   const consent = useConsent();
-  const ai = useAiStatus();
+  const apiKey = useApiKeyHint();
+  const tKey = useTranslations('apiKey');
   const [confirming, setConfirming] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [usage, setUsage] = useState<number | null>(null);
 
   useEffect(() => {
@@ -92,17 +100,54 @@ export function SettingsPanel() {
         </Button>
       </Row>
 
-      <h2 className="title-panel mt-10">{t('ai')}</h2>
-      <Row title={t('aiStatus')} body={ai === null ? t('aiChecking') : t(ai ? 'aiOn' : 'aiOff')}>
-        <Button disabled={!consent} onClick={revokeConsent}>
-          {t(consent ? 'revoke' : 'notGiven')}
-        </Button>
-      </Row>
+      <section id="api-key" aria-labelledby="api-key-title" className="mt-10 scroll-mt-20">
+        <h2 id="api-key-title" className="title-panel">
+          {tKey('section')}
+        </h2>
+        <Row
+          title={tKey('yours')}
+          body={
+            <>
+              {apiKey ? (
+                <span className="text-foreground block font-medium tracking-wide">
+                  {tKey('current', { key: apiKey })}
+                </span>
+              ) : (
+                apiKey === '' && <span className="block">{tKey('none')}</span>
+              )}
+              <span className="mt-1 block">{tKey('settingsNote')}</span>
+            </>
+          }
+        >
+          {apiKey ? (
+            <>
+              <Button onClick={() => void requestApiKey()}>{tKey('update')}</Button>
+              <Button variant="ghost" className="text-danger" onClick={() => setRemoving(true)}>
+                {tKey('remove')}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="primary"
+              disabled={apiKey === null}
+              onClick={() => void requestApiKey()}
+            >
+              <KeyRound />
+              {tKey('add')}
+            </Button>
+          )}
+        </Row>
+        <Row title={t('permission')} body={t('permissionNote')}>
+          <Button disabled={!consent} onClick={revokeConsent}>
+            {t(consent ? 'revoke' : 'notGiven')}
+          </Button>
+        </Row>
+      </section>
 
       <section id="privacy" className="mt-10 scroll-mt-20">
         <h2 className="title-panel">{t('privacyTitle')}</h2>
         <ul className="text-muted-foreground mt-3 list-disc space-y-2 pl-5 text-sm">
-          {['local', 'loss', 'aiSend', 'noTracking'].map((key) => (
+          {['local', 'loss', 'aiSend', 'key', 'noTracking'].map((key) => (
             <li key={key}>{t(`privacy.${key}`)}</li>
           ))}
         </ul>
@@ -116,10 +161,26 @@ export function SettingsPanel() {
         confirmLabel={t('deleteAll')}
         onConfirm={() =>
           void deleteAllData().then(
-            () => toast.success(t('deleted')),
+            () => {
+              // The key and permission went too; show that straight away.
+              revokeConsent();
+              refreshApiKey();
+              toast.success(t('deleted'));
+            },
             () => toast.error(t('deleteFailed')),
           )
         }
+      />
+      <ConfirmDialog
+        open={removing}
+        onOpenChange={setRemoving}
+        title={tKey('removeTitle')}
+        description={tKey('removeBody')}
+        confirmLabel={tKey('remove')}
+        onConfirm={() => {
+          removeApiKey();
+          toast.success(tKey('removed'));
+        }}
       />
     </div>
   );

@@ -92,7 +92,9 @@ export function AssistantPanel({ resume }: { resume: Resume }) {
           {task === 'ats' || task === 'tailor' ? (
             content[task]()
           ) : (
-            <AiGate key={task}>{content[task]()}</AiGate>
+            <AiGate key={task} prompt>
+              {content[task]()}
+            </AiGate>
           )}
         </div>
       </motion.aside>

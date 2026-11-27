@@ -1,4 +1,7 @@
-/* Server only: reads GEMINI_API_KEY. Imported exclusively by route handlers and tests. */
+/*
+ * Server only: talks to Gemini with the key each visitor supplies. The app has no
+ * key of its own. Imported exclusively by route handlers and tests.
+ */
 import { ApiError, GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import { checkTailoring, groundDraft, groundImport, inventedNumbers } from './guards';
@@ -13,6 +16,8 @@ import {
 
 export const DEFAULT_MODEL = 'gemini-3.8-flash';
 export const TIMEOUT_MS = 40_000;
+const KEY_CHECK_TIMEOUT_MS = 15_000;
+const model = () => process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
 
 export class AiFailure extends Error {
   constructor(
@@ -23,8 +28,6 @@ export class AiFailure extends Error {
     super(code);
   }
 }
-
-export const isConfigured = () => Boolean(process.env.GEMINI_API_KEY?.trim());
 
 /** Gemini accepts a subset of JSON Schema, so validation-only keywords are removed. */
 export function toGeminiSchema(schema: z.ZodType) {
@@ -45,7 +48,6 @@ function classify(error: unknown): AiErrorCode {
   if (error instanceof AiFailure) return error.code;
   if (error instanceof ApiError) {
     if (error.status === 429) return 'quota';
-    // A rejected key or unknown model is a setup problem, not the visitor's.
     if (error.status === 401 || error.status === 403) return 'invalid-key';
     if (error.status === 404) return 'model-unavailable';
     if (error.status === 408 || error.status === 504) return 'timeout';
@@ -125,13 +127,48 @@ export type Generate = (params: {
 /** One more try for Gemini's passing server errors. A used-up quota is never retried. */
 export const RETRY = { attempts: 2, initialDelay: 1, httpStatusCodes: [500, 502, 503] };
 
-const gemini: Generate = (params) => {
-  const client = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY!,
-    httpOptions: { retryOptions: RETRY },
-  });
-  return client.models.generateContent(params);
-};
+/** Requests to Gemini made with one visitor's key. Nothing keeps the key afterwards. */
+export function geminiFor(apiKey: string): Generate {
+  // Without a key the SDK would look for one in the environment, which must never happen.
+  if (!apiKey) throw new AiFailure('missing-key');
+  return (params) => {
+    const client = new GoogleGenAI({
+      apiKey,
+      vertexai: false,
+      httpOptions: { retryOptions: RETRY },
+    });
+    return client.models.generateContent(params);
+  };
+}
+
+/** Turns a thrown error into a failure that carries no text from Gemini or the request. */
+function toFailure(error: unknown, timeout: AbortSignal, cancelled?: AbortSignal) {
+  if (cancelled?.aborted) return new AiFailure('cancelled');
+  return new AiFailure(
+    timeout.aborted ? 'timeout' : classify(error),
+    error instanceof ApiError ? error.status : undefined,
+  );
+}
+
+/**
+ * The smallest real request, so a key is only reported as working when Google
+ * accepts it for this model and it has quota left. No resume text is involved.
+ */
+export async function checkApiKey(generate: Generate, cancelled?: AbortSignal) {
+  const timeout = AbortSignal.timeout(KEY_CHECK_TIMEOUT_MS);
+  try {
+    await generate({
+      model: model(),
+      contents: 'Reply with OK.',
+      config: {
+        maxOutputTokens: 16,
+        abortSignal: cancelled ? AbortSignal.any([timeout, cancelled]) : timeout,
+      },
+    });
+  } catch (error) {
+    throw toFailure(error, timeout, cancelled);
+  }
+}
 
 /** Reasons Gemini gives for withholding an answer. Asking again changes nothing. */
 const WITHHELD = new Set(['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII']);
@@ -139,7 +176,7 @@ const WITHHELD = new Set(['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTE
 export async function runAi<A extends AiAction>(
   action: A,
   input: AiRequest<A>,
-  generate: Generate = gemini,
+  generate: Generate,
   /** Aborts when the visitor cancels or leaves, so nothing more is asked of Gemini. */
   cancelled?: AbortSignal,
 ): Promise<unknown> {
@@ -154,7 +191,7 @@ export async function runAi<A extends AiAction>(
     let response: Awaited<ReturnType<Generate>>;
     try {
       response = await generate({
-        model: process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL,
+        model: model(),
         contents: buildPrompt(action, input),
         config: {
           systemInstruction: SYSTEM_PROMPT,
@@ -165,11 +202,7 @@ export async function runAi<A extends AiAction>(
         },
       });
     } catch (error) {
-      if (cancelled?.aborted) throw new AiFailure('cancelled');
-      throw new AiFailure(
-        timeout.aborted ? 'timeout' : classify(error),
-        error instanceof ApiError ? error.status : undefined,
-      );
+      throw toFailure(error, timeout, cancelled);
     }
     const reason = response.candidates?.[0]?.finishReason ?? '';
     if (response.promptFeedback?.blockReason || WITHHELD.has(reason)) {

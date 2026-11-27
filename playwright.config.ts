@@ -24,6 +24,5 @@ export default defineConfig({
     command: `pnpm start --port ${PORT}`,
     url: `http://localhost:${PORT}/en`,
     reuseExistingServer: !process.env.CI,
-    env: { GEMINI_API_KEY: '' },
   },
 });

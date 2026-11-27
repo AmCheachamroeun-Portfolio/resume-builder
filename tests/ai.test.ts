@@ -9,19 +9,27 @@ import { allowLocally } from '@/lib/ai/rate-limit';
 import { applyTailoring, readField, tailorFields } from '@/lib/ai/tailor';
 import { unsupportedTerms } from '@/lib/ats/analyze';
 import { AI_REQUESTS, AI_RESPONSES, type AiRequest, type Draft } from '@/lib/ai/schemas';
-import { AiFailure, RETRY, runAi, toGeminiSchema, type Generate } from '@/lib/ai/server';
-import { callAi, CLIENT_TIMEOUT } from '@/features/ai-assistant/client';
+import { AiFailure, geminiFor, RETRY, runAi, toGeminiSchema, type Generate } from '@/lib/ai/server';
+import { API_KEY_HEADER } from '@/lib/ai/key';
+import { callAi, CLIENT_TIMEOUT, verifyApiKey } from '@/features/ai-assistant/client';
 
 /* Gemini is always mocked: no test calls the real service. */
 const generateContent = vi.fn();
+const clients = vi.fn();
 vi.mock('@google/genai', async (original) => ({
   ...(await original<typeof import('@google/genai')>()),
   GoogleGenAI: class {
+    constructor(options: unknown) {
+      clients(options);
+    }
     models = { generateContent };
   },
 }));
 const { POST } = await import('@/app/api/ai/[action]/route');
-const { GET } = await import('@/app/api/ai/status/route');
+const { POST: CHECK } = await import('@/app/api/ai/key/route');
+
+/** Shaped like a key, and obviously not one. */
+const KEY = 'test-key-not-real-0000000000';
 
 const reply = (value: unknown): Generate => vi.fn(async () => ({ text: JSON.stringify(value) }));
 const improve: AiRequest<'improve-experience'> = {
@@ -383,30 +391,101 @@ describe('privacy and injection handling', () => {
 });
 
 describe('route handler', () => {
-  const call = (action: string, body: unknown, headers: Record<string, string> = {}) =>
-    POST(
-      new Request(`http://app.test/api/ai/${action}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', host: 'app.test', ...headers },
-        body: typeof body === 'string' ? body : JSON.stringify(body),
-      }),
-      { params: Promise.resolve({ action }) },
-    );
   let client = 0;
   const fresh = () => ({ 'x-real-ip': `10.0.0.${++client}` });
+  const request = (path: string, body: unknown, headers: Record<string, string>) =>
+    new Request(`http://app.test/api/ai/${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        host: 'app.test',
+        [API_KEY_HEADER]: KEY,
+        ...headers,
+      },
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+    });
+  const call = (action: string, body: unknown, headers: Record<string, string> = {}) =>
+    POST(request(action, body, headers), { params: Promise.resolve({ action }) });
+  const check = (headers: Record<string, string> = {}) => CHECK(request('key', {}, headers));
+  const hello = { language: 'en', messages: [{ role: 'user', text: 'private words' }] };
 
   beforeEach(() => {
     generateContent.mockReset();
-    vi.stubEnv('GEMINI_API_KEY', 'test-key-not-real');
+    clients.mockReset();
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('says clearly when no key is configured', async () => {
-    vi.stubEnv('GEMINI_API_KEY', '');
-    const response = await call('chat', {});
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: 'not-configured' });
-    expect(await (await GET()).json()).toEqual({ configured: false });
+  it('has no key of its own to fall back on', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'shared-key-that-must-be-ignored');
+    vi.stubEnv('GOOGLE_API_KEY', 'shared-key-that-must-be-ignored');
+    for (const response of [
+      await call('chat', hello, { ...fresh(), [API_KEY_HEADER]: '' }),
+      await check({ ...fresh(), [API_KEY_HEADER]: '' }),
+    ]) {
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: 'missing-key' });
+    }
+    expect(clients).not.toHaveBeenCalled();
+    expect(() => geminiFor('')).toThrow('missing-key');
+  });
+
+  it('talks to Gemini with the key sent by this visitor', async () => {
+    generateContent.mockResolvedValue({ text: '{"reply":"ok"}' });
+    const own = 'another-visitors-key-111111111';
+    await call('chat', hello, fresh());
+    await call('chat', hello, { ...fresh(), [API_KEY_HEADER]: own });
+    expect(clients.mock.calls.map(([o]) => o.apiKey)).toEqual([KEY, own]);
+    expect(clients.mock.calls[0]![0].vertexai).toBe(false);
+    // The key is for the connection only, never part of what the model reads.
+    expect(JSON.stringify(generateContent.mock.calls)).not.toContain(KEY);
+  });
+
+  it('turns away a malformed key without contacting Gemini', async () => {
+    for (const bad of ['short', 'has spaces in the middle of the key']) {
+      const response = await call('chat', hello, { ...fresh(), [API_KEY_HEADER]: bad });
+      expect(await response.json()).toEqual({ error: 'invalid-key' });
+    }
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
+  it('checks a key with one tiny request that carries no resume text', async () => {
+    generateContent.mockResolvedValue({ text: 'OK' });
+    const response = await check(fresh());
+    expect(await response.json()).toEqual({ ok: true });
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(generateContent).toHaveBeenCalledTimes(1);
+    const [{ contents, config }] = generateContent.mock.calls[0]!;
+    expect(contents).toBe('Reply with OK.');
+    expect(config.maxOutputTokens).toBeLessThanOrEqual(16);
+  });
+
+  it.each([
+    [400, 'API key not valid. Please pass a valid API key.', 'invalid-key', 401],
+    [400, 'API key expired. Please renew the API key.', 'invalid-key', 401],
+    [403, 'PERMISSION_DENIED', 'invalid-key', 401],
+    [429, 'RESOURCE_EXHAUSTED', 'quota', 429],
+    [503, 'overloaded', 'upstream', 502],
+  ])('reports a key check that Gemini answers with %i %s', async (status, text, code, sent) => {
+    // Even if Google's message were to repeat the key, none of it is passed on.
+    generateContent.mockRejectedValue(new ApiError({ status, message: `${text} ${KEY}` }));
+    for (const response of [await check(fresh()), await call('chat', hello, fresh())]) {
+      expect(response.status).toBe(sent);
+      expect(await response.json()).toEqual({ error: code });
+    }
+    const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
+    expect(logged).toContain(code);
+    expect(logged).not.toContain(KEY);
+    expect(logged).not.toContain('private words');
+  });
+
+  it('keeps the key check behind the same origin and rate limit rules', async () => {
+    expect((await check({ ...fresh(), origin: 'https://evil.example' })).status).toBe(403);
+    expect((await check({ ...fresh(), 'content-type': 'text/plain' })).status).toBe(403);
+    vi.stubEnv('AI_REQUESTS_PER_MINUTE', '1');
+    generateContent.mockResolvedValue({ text: 'OK' });
+    const headers = fresh();
+    expect((await check(headers)).status).toBe(200);
+    expect((await check(headers)).status).toBe(429);
   });
 
   it('refuses unknown actions, other origins, bad bodies and oversized bodies', async () => {
@@ -447,12 +526,43 @@ describe('route handler', () => {
 
 describe('browser requests', () => {
   const body: AiRequest<'chat'> = { language: 'en', messages: [{ role: 'user', text: 'Hi' }] };
+  /** Consent given and a key saved, unless a test says otherwise. */
+  const browser = (key: string | null = KEY) =>
+    vi.stubGlobal('localStorage', {
+      getItem: (name: string) => (name === 'resumecraft:gemini-api-key' ? key : '1'),
+      setItem: () => {},
+    });
   const answer = (response: Response) => {
-    vi.stubGlobal('localStorage', { getItem: () => '1', setItem: () => {} });
+    browser();
     vi.stubGlobal('fetch', async () => response);
     return callAi('chat', body);
   };
   afterEach(() => vi.unstubAllGlobals());
+
+  it('sends the key in a header only, never in the address or the body', async () => {
+    browser();
+    const fetch = vi.fn(async (url: string) =>
+      Response.json(url.endsWith('/key') ? { ok: true } : { data: { reply: 'Hi' } }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    await callAi('chat', body);
+    await verifyApiKey(KEY);
+    const calls = fetch.mock.calls as unknown as [string, RequestInit][];
+    expect(calls.map(([url]) => url)).toEqual(['/api/ai/chat', '/api/ai/key']);
+    for (const [url, init] of calls) {
+      expect(url).not.toContain(KEY);
+      expect(init.body).not.toContain(KEY);
+      expect(init.headers).toHaveProperty(API_KEY_HEADER, KEY);
+    }
+  });
+
+  it('sends nothing at all without a key', async () => {
+    browser(null);
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    await expect(callAi('chat', body)).rejects.toMatchObject({ code: 'missing-key' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
 
   it('explains error pages that do not come from the app', async () => {
     const page = (status: number) => new Response('<html>', { status });
@@ -469,7 +579,7 @@ describe('browser requests', () => {
 
   it('stops waiting when no answer arrives', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('localStorage', { getItem: () => '1', setItem: () => {} });
+    browser();
     vi.stubGlobal(
       'fetch',
       (_: string, init: RequestInit) =>

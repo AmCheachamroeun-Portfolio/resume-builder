@@ -10,9 +10,10 @@ import { DEFAULT_TEMPLATE_ID, getTemplate } from '@/features/resume-templates/re
 import { Link } from '@/i18n/navigation';
 import type { AiRequest, Draft } from '@/lib/ai/schemas';
 import type { ContentLanguage } from '@/types/resume';
-import { useAiRequest, useAiStatus } from './client';
+import { ensureApiKey, promptForApiKey, useApiKeyHint } from './api-key';
+import { useAiRequest } from './client';
 import { DRAFT_PARTS, draftToData, type Contact, type DraftPart } from './draft';
-import { AiGate, AiStatusLine } from './parts';
+import { AiGate, AiStatusLine, KeyNotice } from './parts';
 import { Recommendations } from './recommend-panel';
 
 type Answers = AiRequest<'generate-draft'>['answers'];
@@ -135,7 +136,7 @@ export function GuidedCreation() {
   const t = useTranslations('guided');
   const recommendT = useTranslations('ai.recommend');
   const locale = useLocale() as ContentLanguage;
-  const configured = useAiStatus();
+  const hasKey = useApiKeyHint();
   const { create, creating } = useCreateResume();
   const draftRequest = useAiRequest('generate-draft');
   const recommendRequest = useAiRequest('recommend-template');
@@ -177,7 +178,12 @@ export function GuidedCreation() {
     else heading.current?.focus();
   }, [step]);
 
+  // This page is opened to use AI, so setup is offered straight away.
+  useEffect(() => promptForApiKey(), []);
+
   const generate = async () => {
+    // Both requests below need the key; ask once, before anything is cleared.
+    if (!(await ensureApiKey())) return;
     setDraft(null);
     setTemplate('');
     void recommendRequest.run({
@@ -207,12 +213,15 @@ export function GuidedCreation() {
     <div className="container-page max-w-3xl py-10">
       <h1 className="title-page">{t('title')}</h1>
       <p className="text-muted-foreground mt-2">{t('intro')}</p>
-      {configured === false && (
-        <div role="status" className="bg-warning-soft text-warning mt-4 rounded-md p-4 text-sm">
-          {t('unavailable')}{' '}
-          <Link href="/builder" className="font-semibold underline">
-            {t('manualLink')}
-          </Link>
+      {hasKey === '' && !review && (
+        <div className="mt-4 space-y-2">
+          <KeyNotice />
+          <p className="text-muted-foreground text-sm">
+            {t('noKey')}{' '}
+            <Link href="/builder" className="text-primary font-semibold hover:underline">
+              {t('manualLink')}
+            </Link>
+          </p>
         </div>
       )}
 

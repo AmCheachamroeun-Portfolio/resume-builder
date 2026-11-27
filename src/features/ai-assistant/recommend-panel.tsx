@@ -85,7 +85,7 @@ export function RecommendPanel({
   const set = (patch: Partial<Query>) => setQuery((q) => ({ ...q, ...patch }));
 
   return (
-    <AiGate>
+    <AiGate prompt>
       <form
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(e) => {

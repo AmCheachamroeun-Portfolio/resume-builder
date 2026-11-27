@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { SAMPLE_DATA } from '../src/constants/sample-resume';
-import { createExample } from './helpers';
+import { createExample, withKey } from './helpers';
 
 test('a cover letter is written, saved, previewed and printed', async ({ page }) => {
   await createExample(page);
@@ -44,9 +44,9 @@ test('a cover letter is written, saved, previewed and printed', async ({ page })
 });
 
 test('an AI draft is applied only after it is accepted, and can be undone', async ({ page }) => {
+  await withKey(page);
   await createExample(page);
   let sent: Record<string, string> = {};
-  await page.route('**/api/ai/status', (route) => route.fulfill({ json: { configured: true } }));
   await page.route('**/api/ai/cover-letter', (route) => {
     sent = route.request().postDataJSON();
     return route.fulfill({ json: { data: { body: 'Dear Hiring Team,\n\nMocked draft.' } } });

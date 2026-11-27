@@ -1,29 +1,60 @@
 'use client';
 
-import { LoaderCircle, RefreshCw, ShieldCheck, Check, X, PencilLine } from 'lucide-react';
+import { Check, KeyRound, LoaderCircle, PencilLine, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/field';
 import type { AiErrorCode } from '@/lib/ai/schemas';
-import { grantConsent, useAiStatus, useConsent } from './client';
+import { cn } from '@/lib/utils';
+import { promptForApiKey, requestApiKey, useApiKeyHint } from './api-key';
+import { grantConsent, useConsent } from './client';
 
-/** Shows AI controls only when the service exists and the writer has agreed to send data. */
-export function AiGate({ children }: { children: ReactNode }) {
+/** Says that a key is still needed, with the way to add one. */
+export function KeyNotice({ className }: { className?: string }) {
+  const t = useTranslations('apiKey');
+  return (
+    <div
+      className={cn(
+        'border-border bg-surface flex flex-wrap items-center justify-between gap-2 rounded-lg border py-2 pr-2 pl-3 text-sm',
+        className,
+      )}
+    >
+      <p className="flex items-center gap-2">
+        <KeyRound aria-hidden className="text-primary size-4 shrink-0" />
+        {t('missing')}
+      </p>
+      <Button size="sm" onClick={() => void requestApiKey()}>
+        {t('add')}
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Shows AI controls once the writer has agreed to send data. A missing key does
+ * not hide them: using one opens setup, then carries on.
+ */
+export function AiGate({
+  children,
+  prompt = false,
+  blocking = false,
+}: {
+  children: ReactNode;
+  /** Offers key setup as soon as this appears, for places opened to use AI. */
+  prompt?: boolean;
+  /** Holds the children back until there is a key, for ones that start by themselves. */
+  blocking?: boolean;
+}) {
   const t = useTranslations('ai');
-  const configured = useAiStatus();
   const consent = useConsent();
-  if (configured === null) {
-    return <p className="text-muted-foreground text-sm">{t('checking')}</p>;
-  }
-  if (!configured) {
-    return (
-      <div role="status" className="bg-warning-soft text-warning rounded-md p-4 text-sm">
-        <p className="font-semibold">{t('unavailableTitle')}</p>
-        <p className="mt-1">{t('unavailableBody')}</p>
-      </div>
-    );
-  }
+  const key = useApiKeyHint();
+  const missing = key === '';
+
+  useEffect(() => {
+    if (prompt && consent && missing) promptForApiKey();
+  }, [prompt, consent, missing]);
+
   if (!consent) {
     return (
       <div className="border-border bg-surface rounded-lg border p-4 text-sm">
@@ -39,12 +70,19 @@ export function AiGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  return <>{children}</>;
+  if (blocking && key === null) return null;
+  if (blocking && missing) return <KeyNotice />;
+  return (
+    <>
+      {missing && <KeyNotice className="mb-3" />}
+      {children}
+    </>
+  );
 }
 
 /** Failures that trying again cannot fix. */
-const NO_RETRY = [
-  'not-configured',
+const NO_RETRY: AiErrorCode[] = [
+  'missing-key',
   'invalid-key',
   'model-unavailable',
   'daily-limit',
@@ -52,6 +90,9 @@ const NO_RETRY = [
   'blocked',
   'too-long',
 ];
+
+/** Failures a different key may fix; after saving one, the request is made again. */
+const KEY_PROBLEMS: AiErrorCode[] = ['missing-key', 'invalid-key', 'quota'];
 
 export function AiStatusLine({
   loading,
@@ -65,6 +106,7 @@ export function AiStatusLine({
   onCancel?: () => void;
 }) {
   const t = useTranslations('ai');
+  const tKey = useTranslations('apiKey');
   if (loading) {
     return (
       <div role="status" className="space-y-2 py-2">
@@ -86,12 +128,23 @@ export function AiStatusLine({
   return (
     <div role="alert" className="bg-danger-soft text-danger rounded-md p-3 text-sm">
       <p>{t(`errors.${error}`)}</p>
-      {!NO_RETRY.includes(error) && (
-        <Button size="sm" className="mt-2" onClick={onRetry}>
-          <RefreshCw />
-          {t('retry')}
-        </Button>
-      )}
+      <div className="flex flex-wrap gap-2 not-empty:mt-2">
+        {!NO_RETRY.includes(error) && (
+          <Button size="sm" onClick={onRetry}>
+            <RefreshCw />
+            {t('retry')}
+          </Button>
+        )}
+        {KEY_PROBLEMS.includes(error) && (
+          <Button
+            size="sm"
+            onClick={() => void requestApiKey().then((saved) => saved && onRetry())}
+          >
+            <KeyRound />
+            {tKey(error === 'missing-key' ? 'add' : 'change')}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

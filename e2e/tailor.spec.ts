@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { SAMPLE_DATA } from '../src/constants/sample-resume';
-import { createExample, preview, saved } from './helpers';
+import { createExample, preview, saved, withKey } from './helpers';
 
 const JOB = 'We are hiring a frontend developer who knows React, TypeScript and Kubernetes well.';
 
 test('accepted rewrites go into a tailored copy and the original is untouched', async ({
   page,
 }) => {
+  await withKey(page);
   await createExample(page);
   const original = page.url();
-  await page.route('**/api/ai/status', (route) => route.fulfill({ json: { configured: true } }));
   let calls = 0;
   await page.route('**/api/ai/tailor-resume', (route) => {
     calls++;
